@@ -1,4 +1,4 @@
-# Lanke PHP ORM 文档
+# lite PHP ORM 文档
 
 ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、增删改、关联预加载、自动建表迁移。
 
