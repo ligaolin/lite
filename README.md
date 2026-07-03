@@ -409,7 +409,26 @@ DB::model(new Config())->debug()->find($list);
 
 ---
 
-## 自定义数据库连接
+## 数据库连接
+
+#### 初始化数据库连接
+
+默认使用 `Conn::init`（MySQLi 实现）初始化连接，应当在应用启动时调用，也可切换为自定义连接：
+
+```php
+use Lin\Lite\DB\Conn;
+ 
+$host = 'localhost';
+$user = 'root';
+$password = '123456';
+$database = 'lite';
+$port = 3306;
+Conn::init($host, $user, $password, $database, $port);
+```
+
+---
+
+### 自定义数据库连接
 
 `ConnInterface` 定义了连接需要实现的接口：
 
