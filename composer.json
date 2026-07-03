@@ -1,6 +1,6 @@
 {
-    "name": "lin/lite",
-    "description": "ORM，一个轻量级的数据库操作库",
+    "name": "lin-orm/lite",
+    "description": "ORM，一个轻量级的PHP数据库操作库",
     "type": "library",
     "license": "MIT",
     "autoload": {
