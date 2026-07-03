@@ -1,0 +1,19 @@
+{
+    "name": "lin/lite",
+    "description": "ORM，一个轻量级的数据库操作库",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Lin\\Lite\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "lin",
+            "email": "976791636@qq.com"
+        }
+    ],
+    "minimum-stability": "beta",
+    "require": {}
+}
