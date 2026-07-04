@@ -8,6 +8,7 @@ use Lin\Lite\attr\CreatedAt;
 use Lin\Lite\attr\UpdatedAt;
 use Lin\Lite\attr\DisableCreate;
 use Lin\Lite\attr\DisableUpdate;
+use Lin\Lite\attr\Type;
 
 trait Save
 {
@@ -112,9 +113,8 @@ trait Save
         $sqlFields = [];
         $args = [];
         $pkName = $this->getPkName();
-        $tableFields = $this->getFields();
-        $fieldTypeMap = $this->getFieldTypeMap();
         foreach ($model as $key => $val) {
+            $type = '';
             if (is_object($model)) {
                 if ($isInsert && DisableCreate::has($model, $key)) continue;
                 if (!$isInsert && DisableUpdate::has($model, $key)) continue;
@@ -130,24 +130,14 @@ trait Save
                 if ($val !== null && Json::has($model, $key)) {
                     $val = json_encode($val, JSON_UNESCAPED_UNICODE);
                 }
+                $type = Type::get($model, $key);
             }
             if (in_array($key, $pkName) && !$val) continue;
-            if (in_array($key, $tableFields)) {
-                if ($isInsert) $sqlFields[] = self::$symbol . $key . self::$symbol;
-                else $sqlFields[] = self::$symbol . $key . self::$symbol . ' = ?';
-                $args[] = $this->castValue($val, $fieldTypeMap[$key] ?? '');
-            }
+            if ($isInsert) $sqlFields[] = self::$symbol . $key . self::$symbol;
+            else $sqlFields[] = self::$symbol . $key . self::$symbol . ' = ?';
+            $args[] = $this->castValue($val, $type);
         }
         return [$sqlFields, $args];
-    }
-
-    protected function getFieldTypeMap()
-    {
-        $map = [];
-        foreach ($this->getFieldsAttr() as $attr) {
-            $map[$attr['COLUMN_NAME']] = $attr['DATA_TYPE'];
-        }
-        return $map;
     }
 
     protected function castValue($val, $type)
