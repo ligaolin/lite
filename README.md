@@ -11,7 +11,6 @@ ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、
 - [删除](#删除)
 - [关联预加载](#关联预加载)
 - [表迁移](#表迁移)
-- [模型表信息](#模型表信息)
 - [原生 SQL](#原生-sql)
 - [自定义数据库连接](#自定义数据库连接)
 - [事务](#事务)
@@ -356,34 +355,6 @@ DB::model(new Config())->syncTable();
 - 表已存在 → 对比 `INFORMATION_SCHEMA`，只 `ADD COLUMN` 新增列，`ADD INDEX` 新增索引，`ADD FOREIGN KEY` 新增外键
 - **已有列/索引** 不会修改/删除
 
----
-
-## 模型表信息
-
-模型上可以定义方法覆盖自动获取的表信息：
-
-```php
-class Config
-{
-    // 自定义表名，默认自动从类名转换（ConfigType → config_type）
-    public function getTable(): string
-    {
-        return 'config';
-    }
-
-    // 自定义主键字段名，默认从数据库查 PRIMARY KEY
-    public function getPkName(): array
-    {
-        return ['id'];
-    }
-
-    // 自定义字段列表，默认从 INFORMATION_SCHEMA 查
-    public function getFields(): array
-    {
-        return ['id', 'name', 'sort'];
-    }
-}
-```
 
 ---
 

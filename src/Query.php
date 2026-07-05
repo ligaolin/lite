@@ -5,6 +5,7 @@ namespace Lin\Lite;
 use Lin\Lite\attr\Json;
 use Lin\Lite\attr\DisableRead;
 use Lin\Lite\attr\BelongsTo;
+use Lin\Lite\attr\ForeignKey;
 use Lin\Lite\attr\HasOne;
 use Lin\Lite\attr\HasMany;
 
@@ -239,7 +240,7 @@ trait Query
     }
 
     // 查询第一条数据
-    function first(object|array &$data)
+    function first(object|array|null &$data)
     {
         if (!$this->model && is_object($data)) $this->model = $data;
         if (method_exists($this->model, 'beforeFind')) {
@@ -280,7 +281,7 @@ trait Query
     }
 
     // 查询多个数据
-    function find(array &$data)
+    function find(array|null &$data)
     {
         if (!$this->model && isset($data[0]) && is_object($data[0])) $this->model = $data[0];
         if (method_exists($this->model, 'beforeFind')) {
@@ -326,6 +327,7 @@ trait Query
     {
         foreach ($model as $k => &$item) {
             if (DisableRead::has($model, $k)) continue;
+            if (BelongsTo::has($model, $k) || HasOne::has($model, $k) || HasMany::has($model, $k)) continue;
             if (array_key_exists($k, $data)) {
                 $item = $data[$k];
                 if ($item !== null && Json::has($model, $k)) {
@@ -370,15 +372,25 @@ trait Query
         $relatedClass = $model::class;
         $pk = $this->getPkName();
         $referencesKey = $pk[0] ?? '';
-        $foreignKey = Utils::underlineCase(class_basename($this->model::class)) . '_id';
+        $foreignKey = Utils::underlineCase($this->model::class) . '_id';
 
         $first = false;
         foreach ($ref->getProperties() as $prop) {
             $belongsTo = $this->getPropAttr($prop, BelongsTo::class);
             if ($belongsTo && $belongsTo->model === $relatedClass) {
                 $first = true;
-                $foreignKey = $prop->getName();
-                $referencesKey = $pk[0] ?? '';
+                $propName = $prop->getName();
+                $referencesKey = str_ends_with($propName, '_id') ? $propName : $propName . '_id';
+                $foreignKey = 'id';
+                foreach ($ref->getProperties() as $p) {
+                    if ($p->getName() === $referencesKey) {
+                        $fkAttr = $this->getPropAttr($p, ForeignKey::class);
+                        if ($fkAttr) {
+                            $foreignKey = $fkAttr->column;
+                        }
+                        break;
+                    }
+                }
                 break;
             }
             $hasOne = $this->getPropAttr($prop, HasOne::class);
@@ -445,7 +457,7 @@ trait Query
                 foreach ($data as &$item) {
                     if ($first) {
                         foreach ($preloadData as $pd) {
-                            if (!$name) $name = lcfirst(class_basename($pd));
+                            if (!$name) $name = Utils::underlineCase($pd::class);
                             if ($pd->$foreignKey == $item->$referencesKey) {
                                 $item->$name = $pd;
                                 break;
@@ -454,7 +466,7 @@ trait Query
                     } else {
                         $arr = [];
                         foreach ($preloadData as $pd) {
-                            if (!$name) $name = lcfirst(class_basename($pd));
+                            if (!$name) $name = Utils::underlineCase($pd::class);
                             if ($pd->$foreignKey == $item->$referencesKey) {
                                 $arr[] = $pd;
                             }
@@ -465,7 +477,7 @@ trait Query
             } else {
                 if ($first) {
                     foreach ($preloadData as $pd) {
-                        if (!$name) $name = lcfirst(class_basename($pd));
+                        if (!$name) $name = Utils::underlineCase($pd::class);
                         if ($pd->$foreignKey == $data->$referencesKey) {
                             $data->$name = $pd;
                             break;
@@ -474,7 +486,7 @@ trait Query
                 } else {
                     $arr = [];
                     foreach ($preloadData as $pd) {
-                        if (!$name) $name = lcfirst(class_basename($pd));
+                        if (!$name) $name = Utils::underlineCase($pd::class);
                         if ($pd->$foreignKey == $data->$referencesKey) {
                             $arr[] = $pd;
                         }

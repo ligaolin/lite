@@ -2,6 +2,9 @@
 
 namespace Lin\Lite;
 
+use Lin\Lite\attr\PrimaryKey;
+use Lin\Lite\attr\Table as TableAttr;
+
 trait Table
 {
     use Exec;
@@ -15,9 +18,16 @@ trait Table
     {
         if (!$this->table) {
             if (is_object($this->model)) {
-                if (method_exists($this->model, 'getTable')) {
-                    $this->table = $this->model->getTable();
-                } else {
+                $ref = new \ReflectionClass($this->model);
+                $attrs = $ref->getAttributes(TableAttr::class);
+                if (!empty($attrs)) {
+                    $tableAttr = $attrs[0]->newInstance();
+                    if ($tableAttr->name) {
+                        $this->table = $tableAttr->name;
+                    }
+                }
+            
+                if (!$this->table) {
                     $this->table = Utils::underlineCase($this->model::class);
                 }
             }
@@ -28,9 +38,16 @@ trait Table
     function getPkName()
     {
         if (!$this->pkName) {
-            if (method_exists($this->model, 'getPkName')) {
-                $this->pkName = $this->model->getPkName();
-            } else if ($table = $this->getTable(null)) {
+            if (is_object($this->model)) {
+                $ref = new \ReflectionClass($this->model);
+                foreach ($ref->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
+                    if (!empty($prop->getAttributes(PrimaryKey::class))) {
+                        $this->pkName[] = $prop->getName();
+                    }
+                }
+            }
+        
+            if (!$this->pkName && ($table = $this->getTable())) {
                 $sql = "SHOW KEYS FROM {$table} WHERE Key_name = 'PRIMARY'";
                 $result = self::runQuery($sql);
                 foreach ($result as $value) {

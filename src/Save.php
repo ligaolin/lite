@@ -2,7 +2,10 @@
 
 namespace Lin\Lite;
 
+use Lin\Lite\attr\BelongsTo;
 use Lin\Lite\attr\DefaultValue;
+use Lin\Lite\attr\HasMany;
+use Lin\Lite\attr\HasOne;
 use Lin\Lite\attr\Json;
 use Lin\Lite\attr\CreatedAt;
 use Lin\Lite\attr\UpdatedAt;
@@ -17,16 +20,17 @@ trait Save
     use Query;
 
     // 当$model包含主键时更新数据，否则添加数据
-    function save(object|array $model)
+    function save(object|array|null $model)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
+        if (!$model) $model = $this->model;
         $update = true;
         $pkName = $this->getPkName();
         $where = [];
         $whereArgs = [];
         if (count($pkName)) {
             foreach ($pkName as $val) {
-                if ((is_array($model) && (!isset($model[$val]) || !$model[$val])) || (is_object($model) && (!isset($model->$val) || !$model->$val))) {
+                if ((is_array($model) && (!isset($model[$val]) || $model[$val] === null || $model[$val] === '')) || (is_object($model) && (!isset($model->$val) || $model->$val === null || $model->$val === ''))) {
                     $update = false;
                 } else {
                     $where[] = self::$symbol . $val . self::$symbol . ' = ?';
@@ -52,9 +56,10 @@ trait Save
         return $this;
     }
 
-    function create(object|array $model)
+    function create(object|array|null $model)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
+        if (!$model) $model = $this->model;
         if ($this->model && method_exists($this->model, 'beforeCreate')) {
             $this->model->beforeCreate();
         }
@@ -83,9 +88,10 @@ trait Save
         return $this;
     }
 
-    function updates(object|array $model)
+    function updates(object|array|null $model)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
+        if (!$model) $model = $this->model;
         if ($this->model && method_exists($this->model, 'beforeUpdate')) {
             $this->model->beforeUpdate();
         }
@@ -113,24 +119,27 @@ trait Save
         $sqlFields = [];
         $args = [];
         $pkName = $this->getPkName();
+        $ref = is_object($this->model) ? $this->model : (is_object($model) ? $model : null);
         foreach ($model as $key => $val) {
             $type = '';
-            if (is_object($model)) {
-                if ($isInsert && DisableCreate::has($model, $key)) continue;
-                if (!$isInsert && DisableUpdate::has($model, $key)) continue;
+            if ($ref) {
+                if (!property_exists($ref, $key)) continue;
+                if ($isInsert && DisableCreate::has($ref, $key)) continue;
+                if (!$isInsert && DisableUpdate::has($ref, $key)) continue;
+                if (BelongsTo::has($ref, $key) || HasOne::has($ref, $key) || HasMany::has($ref, $key)) continue;
                 if ($val === null) {
-                    $val = DefaultValue::get($model, $key);
+                    $val = DefaultValue::get($ref, $key);
                 }
-                if ($isInsert && CreatedAt::has($model, $key) && !$val) {
+                if ($isInsert && CreatedAt::has($ref, $key) && !$val) {
                     $val = CreatedAt::now();
                 }
-                if (UpdatedAt::has($model, $key)) {
+                if (UpdatedAt::has($ref, $key)) {
                     $val = UpdatedAt::now();
                 }
-                if ($val !== null && Json::has($model, $key)) {
+                if ($val !== null && Json::has($ref, $key)) {
                     $val = json_encode($val, JSON_UNESCAPED_UNICODE);
                 }
-                $type = Type::get($model, $key);
+                $type = Type::get($ref, $key);
             }
             if (in_array($key, $pkName) && !$val) continue;
             if ($isInsert) $sqlFields[] = self::$symbol . $key . self::$symbol;
@@ -168,7 +177,7 @@ trait Save
         if ($where) {
             if ($pkName = $this->getPkName()) {
                 foreach ($pkName as $val) {
-                    if ((is_array($this->model) && isset($this->model[$val]) && $this->model[$val]) || (is_object($this->model) && isset($this->model->$val) && $this->model->$val)) {
+                    if ((is_array($this->model) && isset($this->model[$val]) && $this->model[$val] !== null && $this->model[$val] !== '') || (is_object($this->model) && isset($this->model->$val) && $this->model->$val !== null && $this->model->$val !== '')) {
                         $where .= " AND " . self::$symbol . $val . self::$symbol . ' != ?';
                         $whereArgs[] = is_array($this->model) ? $this->model[$val] : $this->model->$val;
                     }
@@ -178,6 +187,24 @@ trait Save
             $result = self::runQuery($sql, $whereArgs);
             if (!isset($result[0]['count']) || $result[0]['count']) {
                 throw new \Exception($msg);
+            }
+        }
+        return $this;
+    }
+
+    function copy(object|array|null $model)
+    {
+        if ($model) {
+            if (is_object($model)) {
+                foreach ($model as $key => $val) {
+                    if (is_object($this->model) && property_exists($this->model, $key)) $this->model->$key = $val;
+                    else if (is_array($this->model) && array_key_exists($key, $this->model)) $this->model[$key] = $val;
+                }
+            } else if (is_array($model)) {
+                foreach ($model as $key => $val) {
+                    if (is_array($this->model) && array_key_exists($key, $this->model)) $this->model[$key] = $val; 
+                    else if (is_object($this->model) && property_exists($this->model, $key)) $this->model->$key = $val;
+                }
             }
         }
         return $this;

@@ -22,7 +22,7 @@ trait Delete
 
         $sql = join(' ', $arr);
         $args = $this->toArgs();
-        self::runQuery($sql, $args);
+        self::runExec($sql, $args);
 
         if (method_exists($this->model, 'afterDelete')) {
             $this->model->afterDelete();
