@@ -12,5 +12,6 @@ class ForeignKey
         public string $column = 'id',
         public ?string $onDelete = null,
         public ?string $onUpdate = null,
+        public bool $migrate = true,
     ) {}
 }

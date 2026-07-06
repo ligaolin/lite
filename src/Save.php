@@ -20,7 +20,7 @@ trait Save
     use Query;
 
     // 当$model包含主键时更新数据，否则添加数据
-    function save(object|array|null $model)
+    function save(object|array|null $model = null)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
         if (!$model) $model = $this->model;
@@ -56,7 +56,7 @@ trait Save
         return $this;
     }
 
-    function create(object|array|null $model)
+    function create(object|array|null $model = null)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
         if (!$model) $model = $this->model;
@@ -88,7 +88,7 @@ trait Save
         return $this;
     }
 
-    function updates(object|array|null $model)
+    function updates(object|array|null $model = null)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
         if (!$model) $model = $this->model;

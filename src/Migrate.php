@@ -133,6 +133,7 @@ trait Migrate
             $fkAttrs = $prop->getAttributes(ForeignKey::class);
             foreach ($fkAttrs as $fkAttr) {
                 $fk = $fkAttr->newInstance();
+                if (!$fk->migrate) continue;
                 $fks[$name] = [
                     'table' => $fk->table,
                     'column' => $fk->column,
@@ -259,7 +260,7 @@ trait Migrate
 
     private function getExistingIndexes(string $tableName): array
     {
-        $rows = self::runQuery("SHOW INDEX FROM {$tableName} WHERE Key_name != 'PRIMARY'");
+        $rows = self::runQuery('SHOW INDEX FROM ' . self::$symbol . $tableName . self::$symbol . " WHERE Key_name != 'PRIMARY'");
         $map = [];
         foreach ($rows as $row) {
             $map[$row['Key_name']] = true;

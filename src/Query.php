@@ -380,7 +380,9 @@ trait Query
             if ($belongsTo && $belongsTo->model === $relatedClass) {
                 $first = true;
                 $propName = $prop->getName();
-                $referencesKey = str_ends_with($propName, '_id') ? $propName : $propName . '_id';
+                $relatedTable = Utils::underlineCase($relatedClass);
+                $referencesKey = $this->findForeignKey($this->model::class, $relatedTable)
+                    ?: (str_ends_with($propName, '_id') ? $propName : $propName . '_id');
                 $foreignKey = 'id';
                 foreach ($ref->getProperties() as $p) {
                     if ($p->getName() === $referencesKey) {
@@ -396,11 +398,13 @@ trait Query
             $hasOne = $this->getPropAttr($prop, HasOne::class);
             if ($hasOne && $hasOne->model === $relatedClass) {
                 $first = true;
+                $foreignKey = $this->findForeignKey($relatedClass, $this->getTable()) ?: $foreignKey;
                 break;
             }
             $hasMany = $this->getPropAttr($prop, HasMany::class);
             if ($hasMany && $hasMany->model === $relatedClass) {
                 $first = false;
+                $foreignKey = $this->findForeignKey($relatedClass, $this->getTable()) ?: $foreignKey;
                 break;
             }
         }
@@ -422,6 +426,18 @@ trait Query
         $attrs = $prop->getAttributes($attrClass);
         if (!empty($attrs)) {
             return $attrs[0]->newInstance();
+        }
+        return null;
+    }
+
+    private function findForeignKey(string $relatedClass, string $currentTable): ?string
+    {
+        $ref = new \ReflectionClass($relatedClass);
+        foreach ($ref->getProperties() as $prop) {
+            $fkAttr = $this->getPropAttr($prop, ForeignKey::class);
+            if ($fkAttr && $fkAttr->table === $currentTable) {
+                return $prop->getName();
+            }
         }
         return null;
     }
