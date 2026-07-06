@@ -14,7 +14,7 @@
             "email": "976791636@qq.com"
         }
     ],
-    "minimum-stability": "beta",
+    "minimum-stability": "stable",
     "require": {
         "php": ">=8.0"
     }
