@@ -436,6 +436,9 @@ trait Query
             $referencesKey = $entry['referencesKey'];
 
             if (is_array($data)) {
+                if (empty($data)) {
+                    continue;
+                }
                 $references = [];
                 foreach ($data as $item) {
                     $references[] = $item->$referencesKey;
@@ -444,7 +447,10 @@ trait Query
             } else {
                 $m->where($foreignKey . ' = ?', $data->$referencesKey);
             }
-            if ($first) {
+            if (is_array($data)) {
+                $preloadData = [];
+                $m->Find($preloadData);
+            } elseif ($first) {
                 $preloadData = null;
                 $m->First($preloadData);
                 $preloadData = $preloadData ? [$preloadData] : [];

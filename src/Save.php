@@ -120,13 +120,20 @@ trait Save
         $args = [];
         $pkName = $this->getPkName();
         $ref = is_object($this->model) ? $this->model : (is_object($model) ? $model : null);
-        foreach ($model as $key => $val) {
+        $iterate = $ref ?: $model;
+        foreach ($iterate as $key => $val) {
             $type = '';
             if ($ref) {
                 if (!property_exists($ref, $key)) continue;
                 if ($isInsert && DisableCreate::has($ref, $key)) continue;
                 if (!$isInsert && DisableUpdate::has($ref, $key)) continue;
+                if (!$isInsert && CreatedAt::has($ref, $key) && !UpdatedAt::has($ref, $key)) continue;
                 if (BelongsTo::has($ref, $key) || HasOne::has($ref, $key) || HasMany::has($ref, $key)) continue;
+                if (is_array($model)) {
+                    $val = array_key_exists($key, $model) ? $model[$key] : $val;
+                } elseif ($model !== $ref) {
+                    $val = isset($model->$key) ? $model->$key : $val;
+                }
                 if ($val === null) {
                     $val = DefaultValue::get($ref, $key);
                 }
