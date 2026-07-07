@@ -120,7 +120,7 @@ trait Save
         $args = [];
         $pkName = $this->getPkName();
         $ref = is_object($this->model) ? $this->model : (is_object($model) ? $model : null);
-        $iterate = $ref ?: $model;
+        $iterate = $isInsert ? ($ref ?: $model) : $model;
         foreach ($iterate as $key => $val) {
             $type = '';
             if ($ref) {

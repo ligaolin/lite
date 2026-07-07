@@ -375,6 +375,7 @@ trait Query
         $foreignKey = Utils::underlineCase($this->model::class) . '_id';
 
         $first = false;
+        $propName = '';
         foreach ($ref->getProperties() as $prop) {
             $belongsTo = $this->getPropAttr($prop, BelongsTo::class);
             if ($belongsTo && $belongsTo->model === $relatedClass) {
@@ -398,12 +399,14 @@ trait Query
             $hasOne = $this->getPropAttr($prop, HasOne::class);
             if ($hasOne && $hasOne->model === $relatedClass) {
                 $first = true;
+                $propName = $prop->getName();
                 $foreignKey = $this->findForeignKey($relatedClass, $this->getTable()) ?: $foreignKey;
                 break;
             }
             $hasMany = $this->getPropAttr($prop, HasMany::class);
             if ($hasMany && $hasMany->model === $relatedClass) {
                 $first = false;
+                $propName = $prop->getName();
                 $foreignKey = $this->findForeignKey($relatedClass, $this->getTable()) ?: $foreignKey;
                 break;
             }
@@ -417,6 +420,7 @@ trait Query
             'first' => $first,
             'foreignKey' => $foreignKey,
             'referencesKey' => $referencesKey,
+            'propName' => $propName,
         ];
         return $this;
     }
@@ -474,12 +478,11 @@ trait Query
                 $preloadData = [];
                 $m->Find($preloadData);
             }
-            $name = '';
+            $name = $entry['propName'] ?: (!empty($preloadData) ? Utils::underlineCase($preloadData[0]::class) : '');
             if (is_array($data)) {
                 foreach ($data as &$item) {
                     if ($first) {
                         foreach ($preloadData as $pd) {
-                            if (!$name) $name = Utils::underlineCase($pd::class);
                             if ($pd->$foreignKey == $item->$referencesKey) {
                                 $item->$name = $pd;
                                 break;
@@ -488,7 +491,6 @@ trait Query
                     } else {
                         $arr = [];
                         foreach ($preloadData as $pd) {
-                            if (!$name) $name = Utils::underlineCase($pd::class);
                             if ($pd->$foreignKey == $item->$referencesKey) {
                                 $arr[] = $pd;
                             }
@@ -499,7 +501,6 @@ trait Query
             } else {
                 if ($first) {
                     foreach ($preloadData as $pd) {
-                        if (!$name) $name = Utils::underlineCase($pd::class);
                         if ($pd->$foreignKey == $data->$referencesKey) {
                             $data->$name = $pd;
                             break;
@@ -508,7 +509,6 @@ trait Query
                 } else {
                     $arr = [];
                     foreach ($preloadData as $pd) {
-                        if (!$name) $name = Utils::underlineCase($pd::class);
                         if ($pd->$foreignKey == $data->$referencesKey) {
                             $arr[] = $pd;
                         }
