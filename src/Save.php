@@ -15,9 +15,7 @@ use Lin\Lite\attr\Type;
 
 trait Save
 {
-    use Table;
-    use Exec;
-    use Query;
+    use Query; // 隐式包含 Table、Exec
 
     function save($model = null)
     {

@@ -11,7 +11,6 @@ use Lin\Lite\attr\HasMany;
 
 trait Query
 {
-    use Exec;
     use Table;
 
     public $field = array();
