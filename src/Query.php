@@ -416,15 +416,6 @@ trait Query
         return $this;
     }
 
-    private function getPropAttr(\ReflectionProperty $prop, $attrClass)
-    {
-        $attrs = AnnotationReader::getPropertyAnnotations($prop->getDeclaringClass()->getName(), $prop->getName(), $attrClass);
-        if (!empty($attrs)) {
-            return $attrs[0];
-        }
-        return null;
-    }
-
     private function findForeignKey($relatedClass, $currentTable)
     {
         $ref = new \ReflectionClass($relatedClass);

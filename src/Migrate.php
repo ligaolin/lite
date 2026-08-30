@@ -14,6 +14,7 @@ use Lin\Lite\attr\Type;
 
 trait Migrate
 {
+    use Exec;
 
     function syncTable()
     {
@@ -140,15 +141,6 @@ trait Migrate
             }
         }
         return $fks;
-    }
-
-    private function getPropAttr(\ReflectionProperty $prop, $attrClass)
-    {
-        $attrs = AnnotationReader::getPropertyAnnotations($prop->getDeclaringClass()->getName(), $prop->getName(), $attrClass);
-        if (!empty($attrs)) {
-            return $attrs[0];
-        }
-        return null;
     }
 
     private function buildCreateTable($tableName, $columns, $indexes, $foreignKeys, $tableAttr)

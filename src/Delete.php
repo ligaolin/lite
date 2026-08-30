@@ -4,6 +4,7 @@ namespace Lin\Lite;
 
 trait Delete
 {
+    use Table;
 
     function Delete()
     {
