@@ -4,7 +4,6 @@ namespace Lin\Lite;
 
 class DB
 {
-    use Query;
     use Save;
     use Delete;
     use Migrate;

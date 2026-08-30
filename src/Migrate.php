@@ -14,7 +14,6 @@ use Lin\Lite\attr\Type;
 
 trait Migrate
 {
-    use Exec;
 
     function syncTable()
     {
