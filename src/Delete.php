@@ -6,13 +6,12 @@ trait Delete
 {
     use Table;
 
-    // 删除数据
     function Delete()
     {
         if (method_exists($this->model, 'beforeDelete')) {
             $this->model->beforeDelete();
         }
-        $arr = ['DELETE FROM'];
+        $arr = array('DELETE FROM');
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
         $arr = array_merge($arr, $this->join);
 

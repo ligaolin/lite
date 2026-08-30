@@ -2,30 +2,36 @@
 
 namespace Lin\Lite\attr;
 
-use Attribute;
+use Lin\Lite\AnnotationReader;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
 class DefaultValue
 {
-    public function __construct(public mixed $value) {}
+    public $value;
 
-    static function get(object $model, string $key): mixed
+    public function __construct($value)
     {
+        $this->value = $value;
+    }
+
+    static function get($model, $key)
+    {
+        if (!is_object($model)) {
+            return null;
+        }
         try {
             $ref = new \ReflectionClass($model);
             if ($ref->hasProperty($key)) {
-                $prop = $ref->getProperty($key);
-                $attrs = $prop->getAttributes(self::class);
+                $attrs = AnnotationReader::getPropertyAnnotations($ref->getName(), $key, __CLASS__);
                 if (!empty($attrs)) {
-                    return $attrs[0]->newInstance()->value;
+                    return $attrs[0]->value;
                 }
             }
-        } catch (\ReflectionException) {
+        } catch (\ReflectionException $e) {
         }
         return null;
     }
 
-    static function toSql(mixed $value): string
+    static function toSql($value)
     {
         if ($value === null) {
             return 'NULL';

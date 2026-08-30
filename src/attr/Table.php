@@ -2,16 +2,20 @@
 
 namespace Lin\Lite\attr;
 
-use Attribute;
-
-#[Attribute(Attribute::TARGET_CLASS)]
 class Table
 {
-    public function __construct(
-        public ?string $name = null,
-        public string $engine = 'InnoDB',
-        public string $charset = 'utf8mb4',
-        public string $collation = 'utf8mb4_general_ci',
-        public string $comment = '',
-    ) {}
+    public $name = null;
+    public $engine = 'InnoDB';
+    public $charset = 'utf8mb4';
+    public $collation = 'utf8mb4_general_ci';
+    public $comment = '';
+
+    public function __construct($name = null, $engine = 'InnoDB', $charset = 'utf8mb4', $collation = 'utf8mb4_general_ci', $comment = '')
+    {
+        $this->name = $name;
+        $this->engine = $engine;
+        $this->charset = $charset;
+        $this->collation = $collation;
+        $this->comment = $comment;
+    }
 }

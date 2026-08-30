@@ -7,7 +7,7 @@ class Utils
     /**
      * 小驼峰
      */
-    static function lowerCamelCase(string $input): string
+    static function lowerCamelCase($input)
     {
         $short = self::removeNamespace($input);
         $str = str_replace(' ', '', ucwords(preg_replace('/[_\-\s.]+/', ' ', $short)));
@@ -17,7 +17,7 @@ class Utils
     /**
      * 大驼峰
      */
-    static function upperCamelCase(string $input): string
+    static function upperCamelCase($input)
     {
         $short = self::removeNamespace($input);
         return str_replace(' ', '', ucwords(preg_replace('/[_\-\s.]+/', ' ', $short)));
@@ -26,7 +26,7 @@ class Utils
     /**
      * 下划线命名 
      */
-    static function underlineCase(string $input): string
+    static function underlineCase($input)
     {
         $short = self::removeNamespace($input);
         $snake = preg_replace('/([a-z0-9])([A-Z])/', '$1_$2', $short);
@@ -37,9 +37,29 @@ class Utils
     /**
      * 移除命名空间，只保留短类名
      */
-    static function removeNamespace(string $className): string
+    static function removeNamespace($className)
     {
         $arr = explode('\\', $className);
         return end($arr);
+    }
+
+    /**
+     * str_contains polyfill for PHP < 8.0
+     */
+    static function strContains($haystack, $needle)
+    {
+        return strpos($haystack, $needle) !== false;
+    }
+
+    /**
+     * str_ends_with polyfill for PHP < 8.0
+     */
+    static function strEndsWith($haystack, $needle)
+    {
+        $length = strlen($needle);
+        if ($length === 0) {
+            return true;
+        }
+        return substr($haystack, -$length) === $needle;
     }
 }

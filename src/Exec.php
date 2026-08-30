@@ -8,22 +8,23 @@ trait Exec
 {
     static protected $conn;
     protected $debug = false;
-    static protected string $symbol = '`';
-    protected float $start = 0;
-    protected $debugLevel = 2; // 1: 打印sql语句+参数，2: 1+耗时+返回行数，3: 2+对象执行时间
+    static protected $symbol = '`';
+    protected $start = 0;
+    protected $debugLevel = 2;
+
     function debug()
     {
         $this->debug = true;
         return $this;
     }
 
-    function debugLevel(int $level)
+    function debugLevel($level)
     {
         $this->debugLevel = max(min($level, 3), 1);
         return $this;
     }
 
-    function show(string $sql, array $args, $time = 0, $count = 0)
+    function show($sql, $args, $time = 0, $count = 0)
     {
         if ($this->debug) {
             if ($this->debugLevel > 1) {
@@ -48,32 +49,32 @@ trait Exec
         return self::$conn;
     }
 
-    function runQuery($sql, array $args = [])
+    function runQuery($sql, $args = array())
     {
         $start = microtime(true);
         $res = self::query($sql, $args);
-        $this->show($sql, $args,  round((microtime(true) - $start) * 1000, 3), count($res));
+        $this->show($sql, $args, round((microtime(true) - $start) * 1000, 3), count($res));
         return $res;
     }
 
-    function runExec($sql, array $args = [])
+    function runExec($sql, $args = array())
     {
         $start = microtime(true);
         self::exec($sql, $args);
         $this->show($sql, $args, round((microtime(true) - $start) * 1000, 3), 0);
     }
 
-    static function query($sql, array $args = [])
+    static function query($sql, $args = array())
     {
         return self::getConn()->query($sql, $args);
     }
 
-    static function exec($sql, array $args = [])
+    static function exec($sql, $args = array())
     {
         self::getConn()->exec($sql, $args);
     }
 
-    static function lastInsertId(): int|string
+    static function lastInsertId()
     {
         return self::getConn()->lastInsertId();
     }
@@ -97,14 +98,23 @@ trait Exec
     {
         $this->start = microtime(true);
     }
+
+    private function formatMicrotime($mt)
+    {
+        $dt = new DateTime();
+        $dt->setTimestamp((int)$mt);
+        $us = sprintf('%06d', ($mt - (int)$mt) * 1000000);
+        return $dt->format('Y-m-d H:i:s') . '.' . $us;
+    }
+
     function __destruct()
     {
         if ($this->debug && $this->debugLevel >= 3) {
             $end = microtime(true);
             echo sprintf(
                 '[%s] [%s] [total: %.3fms]' . "\n",
-                DateTime::createFromFormat('U.u', sprintf('%.6f', $this->start))->format('Y-m-d H:i:s.u'),
-                DateTime::createFromFormat('U.u', sprintf('%.6f', $end))->format('Y-m-d H:i:s.u'),
+                $this->formatMicrotime($this->start),
+                $this->formatMicrotime($end),
                 ($end - $this->start) * 1000
             );
         }

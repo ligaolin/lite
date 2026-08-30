@@ -2,29 +2,35 @@
 
 namespace Lin\Lite\attr;
 
-use Attribute;
+use Lin\Lite\AnnotationReader;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
 class Type
 {
-    public function __construct(
-        public string $type,
-        public ?int $length = null,
-        public ?int $scale = null,
-    ) {}
+    public $type;
+    public $length = null;
+    public $scale = null;
 
-    static function get(object $model, string $key): string
+    public function __construct($type, $length = null, $scale = null)
     {
+        $this->type = $type;
+        $this->length = $length;
+        $this->scale = $scale;
+    }
+
+    static function get($model, $key)
+    {
+        if (!is_object($model)) {
+            return '';
+        }
         try {
             $ref = new \ReflectionClass($model);
             if ($ref->hasProperty($key)) {
-                $prop = $ref->getProperty($key);
-                $attrs = $prop->getAttributes(self::class);
+                $attrs = AnnotationReader::getPropertyAnnotations($ref->getName(), $key, __CLASS__);
                 if (!empty($attrs)) {
-                    return $attrs[0]->newInstance()->type;
+                    return $attrs[0]->type;
                 }
             }
-        } catch (\ReflectionException) {
+        } catch (\ReflectionException $e) {
         }
         return '';
     }

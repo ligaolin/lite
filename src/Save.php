@@ -19,15 +19,14 @@ trait Save
     use Exec;
     use Query;
 
-    // 当$model包含主键时更新数据，否则添加数据
-    function save(object|array|null $model = null)
+    function save($model = null)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
         if (!$model) $model = $this->model;
         $update = true;
         $pkName = $this->getPkName();
-        $where = [];
-        $whereArgs = [];
+        $where = array();
+        $whereArgs = array();
         if (count($pkName)) {
             foreach ($pkName as $val) {
                 if ((is_array($model) && (!isset($model[$val]) || $model[$val] === null || $model[$val] === '')) || (is_object($model) && (!isset($model->$val) || $model->$val === null || $model->$val === ''))) {
@@ -56,15 +55,15 @@ trait Save
         return $this;
     }
 
-    function create(object|array|null $model = null)
+    function create($model = null)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
         if (!$model) $model = $this->model;
         if ($this->model && method_exists($this->model, 'beforeCreate')) {
             $this->model->beforeCreate();
         }
-        $arr = ['INSERT INTO ' . self::$symbol . $this->getTable() . self::$symbol];
-        [$fields, $args] = $this->saveVal($model, true);
+        $arr = array('INSERT INTO ' . self::$symbol . $this->getTable() . self::$symbol);
+        list($fields, $args) = $this->saveVal($model, true);
         if (count($fields)) {
             $arr[] = '(' . join(',', $fields) . ')';
             $arr[] = 'VALUES';
@@ -88,16 +87,16 @@ trait Save
         return $this;
     }
 
-    function updates(object|array|null $model = null)
+    function updates($model = null)
     {
         if (!$this->model && is_object($model)) $this->model = $model;
         if (!$model) $model = $this->model;
         if ($this->model && method_exists($this->model, 'beforeUpdate')) {
             $this->model->beforeUpdate();
         }
-        $arr = ['UPDATE ' . self::$symbol . $this->getTable() . self::$symbol . ' SET'];
+        $arr = array('UPDATE ' . self::$symbol . $this->getTable() . self::$symbol . ' SET');
 
-        [$fields, $args] = $this->saveVal($model, false);
+        list($fields, $args) = $this->saveVal($model, false);
         if (count($fields)) {
             $arr[] = join(', ', $fields);
         }
@@ -114,10 +113,10 @@ trait Save
         return $this;
     }
 
-    protected function saveVal(object|array $model, $isInsert = true)
+    protected function saveVal($model, $isInsert = true)
     {
-        $sqlFields = [];
-        $args = [];
+        $sqlFields = array();
+        $args = array();
         $pkName = $this->getPkName();
         $ref = is_object($this->model) ? $this->model : (is_object($model) ? $model : null);
         $iterate = $isInsert ? ($ref ?: $model) : $model;
@@ -153,14 +152,14 @@ trait Save
             else $sqlFields[] = self::$symbol . $key . self::$symbol . ' = ?';
             $args[] = $this->castValue($val, $type);
         }
-        return [$sqlFields, $args];
+        return array($sqlFields, $args);
     }
 
     protected function castValue($val, $type)
     {
         if ($val === null || $val === '') {
-            $intTypes = ['int', 'tinyint', 'smallint', 'mediumint', 'bigint', 'bit'];
-            $floatTypes = ['decimal', 'float', 'double', 'real', 'numeric'];
+            $intTypes = array('int', 'tinyint', 'smallint', 'mediumint', 'bigint', 'bit');
+            $floatTypes = array('decimal', 'float', 'double', 'real', 'numeric');
             $lowerType = strtolower($type);
             if (in_array($lowerType, $intTypes) || in_array($lowerType, $floatTypes)) {
                 return null;
@@ -169,18 +168,16 @@ trait Save
         return $val;
     }
 
-    function update(string $field, $value)
+    function update($field, $value)
     {
-        $this->updates([$field => $value]);
+        $this->updates(array($field => $value));
     }
 
-    // 检查数据唯一性
-    // $msg 错误提示
-    // $where 为检查条件
-    // $whereArgs 为检查条件中的参数
-    // 当使用模型实例化时，如果有主键，会自动通过主键排除自身数据
-    function checkUnique($msg, $where, ...$whereArgs)
+    function checkUnique($msg, $where, $whereArgs = null)
     {
+        $whereArgs = func_get_args();
+        array_shift($whereArgs);
+        array_shift($whereArgs);
         if ($where) {
             if ($pkName = $this->getPkName()) {
                 foreach ($pkName as $val) {
@@ -194,24 +191,6 @@ trait Save
             $result = self::runQuery($sql, $whereArgs);
             if (!isset($result[0]['count']) || $result[0]['count']) {
                 throw new \Exception($msg);
-            }
-        }
-        return $this;
-    }
-
-    function copy(object|array|null $model)
-    {
-        if ($model) {
-            if (is_object($model)) {
-                foreach ($model as $key => $val) {
-                    if (is_object($this->model) && property_exists($this->model, $key)) $this->model->$key = $val;
-                    else if (is_array($this->model) && array_key_exists($key, $this->model)) $this->model[$key] = $val;
-                }
-            } else if (is_array($model)) {
-                foreach ($model as $key => $val) {
-                    if (is_array($this->model) && array_key_exists($key, $this->model)) $this->model[$key] = $val; 
-                    else if (is_object($this->model) && property_exists($this->model, $key)) $this->model->$key = $val;
-                }
             }
         }
         return $this;

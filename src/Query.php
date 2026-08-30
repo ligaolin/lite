@@ -11,30 +11,32 @@ use Lin\Lite\attr\HasMany;
 
 trait Query
 {
-    use Exec; // 执行sql语句
-    use Table; // 表基础信息
+    use Exec;
+    use Table;
 
-    public $field = [];
-    public $join = [];
-    public $joinArgs = [];
-    public $where = [];
-    public $whereArgs = [];
+    public $field = array();
+    public $join = array();
+    public $joinArgs = array();
+    public $where = array();
+    public $whereArgs = array();
     public $limit = '';
     public $offset = '';
-    public $order = [];
+    public $order = array();
     public $group = '';
     public $having = '';
     public $distinct = '';
-    public $preloads = [];
+    public $preloads = array();
 
-    function select(string ...$field)
+    function select()
     {
-        $this->field = $field;
+        $this->field = func_get_args();
         return $this;
     }
 
-    function where(string $sql, ...$val)
+    function where($sql)
     {
+        $val = func_get_args();
+        array_shift($val);
         foreach ($val as &$v) {
             if (is_array($v)) {
                 $pos = strpos($sql, '?');
@@ -51,8 +53,7 @@ trait Query
         return $this;
     }
 
-    // 当查询字段值不为空时，才添加where条件句
-    function whereNotEmpty(string $sql, $val)
+    function whereNotEmpty($sql, $val)
     {
         if ($val) {
             if (is_array($val)) {
@@ -70,11 +71,10 @@ trait Query
         return $this;
     }
 
-    // 当查询字段值不为空时，才添加like条件句
-    function like(string $sql, $val, string $like = '')
+    function like($sql, $val, $like = '')
     {
         if ($val) {
-            if (!str_contains(strtoupper($sql), strtoupper('like'))) $sql .= ' LIKE ?';
+            if (!Utils::strContains(strtoupper($sql), strtoupper('like'))) $sql .= ' LIKE ?';
             $this->where[] = $sql;
             if (!$like) $like = '%' . $val . '%';
             $this->whereArgs[] = $like;
@@ -82,73 +82,69 @@ trait Query
         return $this;
     }
 
-
-    function order(string $order)
+    function order($order)
     {
         $this->order[] = $order;
         return $this;
     }
 
-    function join(string $sql, ...$val)
+    function join($sql)
     {
+        $val = func_get_args();
+        array_shift($val);
         $this->join[] = $sql;
         $this->joinArgs = array_merge($this->joinArgs, $val);
         return $this;
     }
 
-    function group(string $group)
+    function group($group)
     {
         $this->group = $group;
         return $this;
     }
 
-    function having(string $having)
+    function having($having)
     {
         $this->having = $having;
         return $this;
     }
 
-    function distinct(string $distinct)
+    function distinct($distinct)
     {
         $this->distinct = $distinct;
         return $this;
     }
 
-    function limit(int $limit, int $max_limit = 1000)
+    function limit($limit, $max_limit = 1000)
     {
         $this->limit = min($limit, $max_limit);
         return $this;
     }
 
-    function offset(int $offset)
+    function offset($offset)
     {
         $this->offset = $offset;
         return $this;
     }
 
-    // 分页查询
-    // $page 当前页
-    // $page_size 每页条数
-    // $max_page_size 最大每页条数，查询数据时不能大于这个数量
-    function page(int $page = 1, int $page_size = 10, int $max_page_size = 100)
+    function page($page = 1, $page_size = 10, $max_page_size = 100)
     {
         $page_size = max(1, min($max_page_size, $page_size));
         $this->limit = $page_size;
-        if ($page > 0) { // 当前页大于0，才分页查询
+        if ($page > 0) {
             $this->offset = ($page - 1) * $page_size;
         }
         return $this;
     }
 
-    protected function toArgs(): array
+    protected function toArgs()
     {
         return array_merge($this->joinArgs, $this->whereArgs);
     }
 
-    // 查询单个字段值
-    function value(string $field, &$value)
+    function value($field, &$value)
     {
-        $arr = ['SELECT'];
+        $arr = array('SELECT');
         $arr[] = $field;
         $arr[] = 'FROM';
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
@@ -176,10 +172,9 @@ trait Query
         return $this;
     }
 
-    // 查询多个字段值，返回二维数组
-    function values(array $fields, array &$data)
+    function values($fields, &$data)
     {
-        $arr = ['SELECT'];
+        $arr = array('SELECT');
         $arr[] = join(',', $fields);
         $arr[] = 'FROM';
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
@@ -201,21 +196,20 @@ trait Query
         $sql = join(' ', $arr);
         $args = $this->toArgs();
         $result = self::runQuery($sql, $args);
-        $data = [];
+        $data = array();
         foreach ($result as $row) {
-            $item = [];
+            $item = array();
             foreach ($fields as $f) {
-                $item[$f] = $row[$f] ?? null;
+                $item[$f] = isset($row[$f]) ? $row[$f] : null;
             }
             $data[] = $item;
         }
         return $this;
     }
 
-    // 查询数据条数
     function count(&$total)
     {
-        $arr = ['SELECT'];
+        $arr = array('SELECT');
         if ($this->distinct) $arr[] = 'DISTINCT';
         $arr[] = 'COUNT(*)';
         $arr[] = 'FROM';
@@ -239,16 +233,15 @@ trait Query
         return $this;
     }
 
-    // 查询第一条数据
-    function first(object|array|null &$data)
+    function first(&$data)
     {
         if (!$this->model && is_object($data)) $this->model = $data;
         if (method_exists($this->model, 'beforeFind')) {
             $this->model->beforeFind();
         }
-        $arr = ['SELECT'];
+        $arr = array('SELECT');
         if ($this->distinct) $arr[] = 'DISTINCT';
-        if (!count($this->field)) $this->field = ['*'];
+        if (!count($this->field)) $this->field = array('*');
         $arr = array_merge($arr, $this->field);
         $arr[] = 'FROM';
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
@@ -271,7 +264,8 @@ trait Query
         $result = self::runQuery($sql, $args);
 
         if (isset($result[0])) {
-            $data = new ($this->model::class);
+            $modelClass = get_class($this->model);
+            $data = new $modelClass();
             $this->setVals($data, $result[0]);
         } else {
             $data = $this->model;
@@ -280,16 +274,15 @@ trait Query
         return $this;
     }
 
-    // 查询多个数据
-    function find(array|null &$data)
+    function find(&$data)
     {
         if (!$this->model && isset($data[0]) && is_object($data[0])) $this->model = $data[0];
         if (method_exists($this->model, 'beforeFind')) {
             $this->model->beforeFind();
         }
-        $arr = ['SELECT'];
+        $arr = array('SELECT');
         if ($this->distinct) $arr[] = 'DISTINCT';
-        if (!count($this->field)) $this->field = ['*'];
+        if (!count($this->field)) $this->field = array('*');
         $arr = array_merge($arr, $this->field);
         $arr[] = 'FROM';
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
@@ -304,17 +297,17 @@ trait Query
         $order = join(', ', $this->order);
         if ($order) $arr[] = 'ORDER BY ' . $order;
 
-        // 分页
         if ($this->limit) $arr[] = 'LIMIT ' . $this->limit;
         if ($this->offset) $arr[] = 'OFFSET ' . $this->offset;
 
         $sql = join(' ', $arr);
         $args = $this->toArgs();
         $result = self::runQuery($sql, $args);
-        $data = [];
+        $data = array();
         if ($this->model) {
+            $modelClass = get_class($this->model);
             foreach ($result as $item) {
-                $m = new ($this->model::class);
+                $m = new $modelClass();
                 $this->setVals($m, $item);
                 $data[] = $m;
             }
@@ -340,10 +333,9 @@ trait Query
         }
     }
 
-    // 检查数据是否存在
     function exists(&$exist)
     {
-        $arr = ['SELECT 1 FROM'];
+        $arr = array('SELECT 1 FROM');
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
         $arr = array_merge($arr, $this->join);
 
@@ -359,35 +351,35 @@ trait Query
         $args = $this->toArgs();
         $result = self::runQuery($sql, $args);
         if (isset($result[0]['count']) && $result[0]['count']) {
-            $exist =  true;
+            $exist = true;
         } else {
             $exist = false;
         }
         return $this;
     }
 
-    function preload(object $model, $fun = null)
+    function preload($model, $fun = null)
     {
         $ref = new \ReflectionClass($this->model);
-        $relatedClass = $model::class;
+        $relatedClass = get_class($model);
         $pk = $this->getPkName();
-        $referencesKey = $pk[0] ?? '';
-        $foreignKey = Utils::underlineCase($this->model::class) . '_id';
+        $referencesKey = isset($pk[0]) ? $pk[0] : '';
+        $foreignKey = Utils::underlineCase(get_class($this->model)) . '_id';
 
         $first = false;
         $propName = '';
         foreach ($ref->getProperties() as $prop) {
-            $belongsTo = $this->getPropAttr($prop, BelongsTo::class);
+            $belongsTo = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\BelongsTo');
             if ($belongsTo && $belongsTo->model === $relatedClass) {
                 $first = true;
                 $propName = $prop->getName();
                 $relatedTable = Utils::underlineCase($relatedClass);
-                $referencesKey = $this->findForeignKey($this->model::class, $relatedTable)
-                    ?: (str_ends_with($propName, '_id') ? $propName : $propName . '_id');
+                $referencesKey = $this->findForeignKey(get_class($this->model), $relatedTable)
+                    ?: (Utils::strEndsWith($propName, '_id') ? $propName : $propName . '_id');
                 $foreignKey = 'id';
                 foreach ($ref->getProperties() as $p) {
                     if ($p->getName() === $referencesKey) {
-                        $fkAttr = $this->getPropAttr($p, ForeignKey::class);
+                        $fkAttr = $this->getPropAttr($p, __NAMESPACE__ . '\attr\ForeignKey');
                         if ($fkAttr) {
                             $foreignKey = $fkAttr->column;
                         }
@@ -396,14 +388,14 @@ trait Query
                 }
                 break;
             }
-            $hasOne = $this->getPropAttr($prop, HasOne::class);
+            $hasOne = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\HasOne');
             if ($hasOne && $hasOne->model === $relatedClass) {
                 $first = true;
                 $propName = $prop->getName();
                 $foreignKey = $this->findForeignKey($relatedClass, $this->getTable()) ?: $foreignKey;
                 break;
             }
-            $hasMany = $this->getPropAttr($prop, HasMany::class);
+            $hasMany = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\HasMany');
             if ($hasMany && $hasMany->model === $relatedClass) {
                 $first = false;
                 $propName = $prop->getName();
@@ -415,30 +407,30 @@ trait Query
         $m = DB::Model($model);
         if ($fun) $fun($m);
         if ($this->debug) $m = $m->debug();
-        $this->preloads[] = [
+        $this->preloads[] = array(
             'db' => $m,
             'first' => $first,
             'foreignKey' => $foreignKey,
             'referencesKey' => $referencesKey,
             'propName' => $propName,
-        ];
+        );
         return $this;
     }
 
-    private function getPropAttr(\ReflectionProperty $prop, string $attrClass): ?object
+    private function getPropAttr(\ReflectionProperty $prop, $attrClass)
     {
-        $attrs = $prop->getAttributes($attrClass);
+        $attrs = AnnotationReader::getPropertyAnnotations($prop->getDeclaringClass()->getName(), $prop->getName(), $attrClass);
         if (!empty($attrs)) {
-            return $attrs[0]->newInstance();
+            return $attrs[0];
         }
         return null;
     }
 
-    private function findForeignKey(string $relatedClass, string $currentTable): ?string
+    private function findForeignKey($relatedClass, $currentTable)
     {
         $ref = new \ReflectionClass($relatedClass);
         foreach ($ref->getProperties() as $prop) {
-            $fkAttr = $this->getPropAttr($prop, ForeignKey::class);
+            $fkAttr = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\ForeignKey');
             if ($fkAttr && $fkAttr->table === $currentTable) {
                 return $prop->getName();
             }
@@ -459,7 +451,7 @@ trait Query
                 if (empty($data)) {
                     continue;
                 }
-                $references = [];
+                $references = array();
                 foreach ($data as $item) {
                     $references[] = $item->$referencesKey;
                 }
@@ -468,17 +460,17 @@ trait Query
                 $m->where($foreignKey . ' = ?', $data->$referencesKey);
             }
             if (is_array($data)) {
-                $preloadData = [];
+                $preloadData = array();
                 $m->Find($preloadData);
             } elseif ($first) {
                 $preloadData = null;
                 $m->First($preloadData);
-                $preloadData = $preloadData ? [$preloadData] : [];
+                $preloadData = $preloadData ? array($preloadData) : array();
             } else {
-                $preloadData = [];
+                $preloadData = array();
                 $m->Find($preloadData);
             }
-            $name = $entry['propName'] ?: (!empty($preloadData) ? Utils::underlineCase($preloadData[0]::class) : '');
+            $name = $entry['propName'] ?: (!empty($preloadData) ? Utils::underlineCase(get_class($preloadData[0])) : '');
             if (is_array($data)) {
                 foreach ($data as &$item) {
                     if ($first) {
@@ -489,7 +481,7 @@ trait Query
                             }
                         }
                     } else {
-                        $arr = [];
+                        $arr = array();
                         foreach ($preloadData as $pd) {
                             if ($pd->$foreignKey == $item->$referencesKey) {
                                 $arr[] = $pd;
@@ -500,20 +492,9 @@ trait Query
                 }
             } else {
                 if ($first) {
-                    foreach ($preloadData as $pd) {
-                        if ($pd->$foreignKey == $data->$referencesKey) {
-                            $data->$name = $pd;
-                            break;
-                        }
-                    }
+                    $data->$name = isset($preloadData[0]) ? $preloadData[0] : null;
                 } else {
-                    $arr = [];
-                    foreach ($preloadData as $pd) {
-                        if ($pd->$foreignKey == $data->$referencesKey) {
-                            $arr[] = $pd;
-                        }
-                    }
-                    if (count($arr)) $data->$name = $arr;
+                    $data->$name = $preloadData;
                 }
             }
         }

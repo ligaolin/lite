@@ -2,16 +2,20 @@
 
 namespace Lin\Lite\attr;
 
-use Attribute;
-
-#[Attribute(Attribute::TARGET_PROPERTY)]
 class ForeignKey
 {
-    public function __construct(
-        public string $table,
-        public string $column = 'id',
-        public ?string $onDelete = null,
-        public ?string $onUpdate = null,
-        public bool $migrate = true,
-    ) {}
+    public $table;
+    public $column = 'id';
+    public $onDelete = null;
+    public $onUpdate = null;
+    public $migrate = true;
+
+    public function __construct($table, $column = 'id', $onDelete = null, $onUpdate = null, $migrate = true)
+    {
+        $this->table = $table;
+        $this->column = $column;
+        $this->onDelete = $onDelete;
+        $this->onUpdate = $onUpdate;
+        $this->migrate = $migrate;
+    }
 }

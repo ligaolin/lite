@@ -2,19 +2,21 @@
 
 namespace Lin\Lite\attr;
 
-use Attribute;
+use Lin\Lite\AnnotationReader;
 
-#[Attribute(Attribute::TARGET_PROPERTY)]
 class DisableMigrate
 {
-    static function has(object $model, string $key): bool
+    static function has($model, $key)
     {
+        if (!is_object($model)) {
+            return false;
+        }
         try {
             $ref = new \ReflectionClass($model);
             if ($ref->hasProperty($key)) {
-                return !empty($ref->getProperty($key)->getAttributes(self::class));
+                return AnnotationReader::hasPropertyAnnotation($ref->getName(), $key, __CLASS__);
             }
-        } catch (\ReflectionException) {
+        } catch (\ReflectionException $e) {
         }
         return false;
     }

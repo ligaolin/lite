@@ -40,28 +40,28 @@ trait Migrate
         return $this;
     }
 
-    private function tableExists(string $tableName): bool
+    private function tableExists($tableName)
     {
-        $rows = self::runQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?", [$tableName]);
+        $rows = self::runQuery("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?", array($tableName));
         return !empty($rows);
     }
 
-    private function getTableAttr(\ReflectionClass $ref): ?TableAttr
+    private function getTableAttr(\ReflectionClass $ref)
     {
-        $attrs = $ref->getAttributes(TableAttr::class);
+        $attrs = AnnotationReader::getClassAnnotations($ref->getName(), __NAMESPACE__ . '\attr\Table');
         if (!empty($attrs)) {
-            return $attrs[0]->newInstance();
+            return $attrs[0];
         }
         return null;
     }
 
-    private function getColumnDefs(\ReflectionClass $ref): array
+    private function getColumnDefs(\ReflectionClass $ref)
     {
-        $columns = [];
+        $columns = array();
         $props = $ref->getProperties(\ReflectionProperty::IS_PUBLIC);
         foreach ($props as $prop) {
             $name = $prop->getName();
-            if (!empty($prop->getAttributes(DisableMigrate::class))) continue;
+            if (AnnotationReader::hasPropertyAnnotation($ref->getName(), $name, __NAMESPACE__ . '\attr\DisableMigrate')) continue;
             $def = $this->buildColumnDef($prop, $name);
             if ($def) {
                 $columns[$name] = $def;
@@ -70,9 +70,9 @@ trait Migrate
         return $columns;
     }
 
-    private function buildColumnDef(\ReflectionProperty $prop, string $name): string
+    private function buildColumnDef(\ReflectionProperty $prop, $name)
     {
-        $type = $this->getAttr($prop, Type::class);
+        $type = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\Type');
         if (!$type) {
             return '';
         }
@@ -85,11 +85,11 @@ trait Migrate
             $col .= ')';
         }
 
-        $isPk = !empty($prop->getAttributes(PrimaryKey::class));
-        $isAi = !empty($prop->getAttributes(AutoIncrement::class));
+        $isPk = AnnotationReader::hasPropertyAnnotation($prop->getDeclaringClass()->getName(), $name, __NAMESPACE__ . '\attr\PrimaryKey');
+        $isAi = AnnotationReader::hasPropertyAnnotation($prop->getDeclaringClass()->getName(), $name, __NAMESPACE__ . '\attr\AutoIncrement');
         $col .= $isPk ? ' NOT NULL' : ' NULL';
 
-        $dv = $this->getAttr($prop, DefaultValue::class);
+        $dv = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\DefaultValue');
         if ($dv) {
             $col .= ' DEFAULT ' . DefaultValue::toSql($dv->value);
         } elseif (!$isPk) {
@@ -100,7 +100,7 @@ trait Migrate
             $col .= ' AUTO_INCREMENT';
         }
 
-        $comment = $this->getAttr($prop, Comment::class);
+        $comment = $this->getPropAttr($prop, __NAMESPACE__ . '\attr\Comment');
         if ($comment) {
             $col .= " COMMENT '" . addslashes($comment->comment) . "'";
         }
@@ -108,15 +108,14 @@ trait Migrate
         return $col;
     }
 
-    private function getIndexDefs(\ReflectionClass $ref): array
+    private function getIndexDefs(\ReflectionClass $ref)
     {
-        $indexes = [];
+        $indexes = array();
         $props = $ref->getProperties(\ReflectionProperty::IS_PUBLIC);
         foreach ($props as $prop) {
             $name = $prop->getName();
-            $attrs = $prop->getAttributes(Index::class);
-            foreach ($attrs as $attr) {
-                $idx = $attr->newInstance();
+            $attrs = AnnotationReader::getPropertyAnnotations($ref->getName(), $name, __NAMESPACE__ . '\attr\Index');
+            foreach ($attrs as $idx) {
                 $idxName = $idx->name ?: 'idx_' . $name;
                 $indexes[$idxName] = $name;
             }
@@ -124,49 +123,48 @@ trait Migrate
         return $indexes;
     }
 
-    private function getForeignKeyDefs(\ReflectionClass $ref): array
+    private function getForeignKeyDefs(\ReflectionClass $ref)
     {
-        $fks = [];
+        $fks = array();
         $props = $ref->getProperties(\ReflectionProperty::IS_PUBLIC);
         foreach ($props as $prop) {
             $name = $prop->getName();
-            $fkAttrs = $prop->getAttributes(ForeignKey::class);
-            foreach ($fkAttrs as $fkAttr) {
-                $fk = $fkAttr->newInstance();
+            $fkAttrs = AnnotationReader::getPropertyAnnotations($ref->getName(), $name, __NAMESPACE__ . '\attr\ForeignKey');
+            foreach ($fkAttrs as $fk) {
                 if (!$fk->migrate) continue;
-                $fks[$name] = [
+                $fks[$name] = array(
                     'table' => $fk->table,
                     'column' => $fk->column,
                     'onDelete' => $fk->onDelete,
                     'onUpdate' => $fk->onUpdate,
-                ];
+                );
             }
         }
         return $fks;
     }
 
-    private function getAttr(\ReflectionProperty $prop, string $attrClass): ?object
+    private function getPropAttr(\ReflectionProperty $prop, $attrClass)
     {
-        $attrs = $prop->getAttributes($attrClass);
+        $attrs = AnnotationReader::getPropertyAnnotations($prop->getDeclaringClass()->getName(), $prop->getName(), $attrClass);
         if (!empty($attrs)) {
-            return $attrs[0]->newInstance();
+            return $attrs[0];
         }
         return null;
     }
 
-    private function buildCreateTable(string $tableName, array $columns, array $indexes, array $foreignKeys, ?TableAttr $tableAttr): string
+    private function buildCreateTable($tableName, $columns, $indexes, $foreignKeys, $tableAttr)
     {
         $symbol = self::$symbol;
-        $lines = [];
+        $lines = array();
 
-        $pks = [];
+        $pks = array();
         foreach ($columns as $name => $def) {
             $lines[] = "{$symbol}{$name}{$symbol} $def";
         }
 
         $ref = new \ReflectionClass($this->model);
         foreach ($ref->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
-            if (!empty($prop->getAttributes(PrimaryKey::class))) {
+            if (AnnotationReader::hasPropertyAnnotation($ref->getName(), $prop->getName(), __NAMESPACE__ . '\attr\PrimaryKey')) {
                 $pks[] = $prop->getName();
             }
         }
@@ -205,7 +203,7 @@ trait Migrate
         return $sql;
     }
 
-    private function alterColumns(string $tableName, array $columns, \ReflectionClass $ref)
+    private function alterColumns($tableName, $columns, \ReflectionClass $ref)
     {
         $existing = $this->getExistingColumns($tableName);
         foreach ($columns as $name => $def) {
@@ -217,7 +215,7 @@ trait Migrate
         }
     }
 
-    private function alterIndexes(string $tableName, array $indexes, \ReflectionClass $ref)
+    private function alterIndexes($tableName, $indexes, \ReflectionClass $ref)
     {
         $existing = $this->getExistingIndexes($tableName);
         foreach ($indexes as $idxName => $colName) {
@@ -229,7 +227,7 @@ trait Migrate
         }
     }
 
-    private function alterForeignKeys(string $tableName, array $foreignKeys, \ReflectionClass $ref)
+    private function alterForeignKeys($tableName, $foreignKeys, \ReflectionClass $ref)
     {
         $existing = $this->getExistingForeignKeys($tableName);
         foreach ($foreignKeys as $colName => $fk) {
@@ -248,30 +246,30 @@ trait Migrate
         }
     }
 
-    private function getExistingColumns(string $tableName): array
+    private function getExistingColumns($tableName)
     {
-        $rows = self::runQuery("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?", [$tableName]);
-        $map = [];
+        $rows = self::runQuery("SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?", array($tableName));
+        $map = array();
         foreach ($rows as $row) {
             $map[$row['COLUMN_NAME']] = true;
         }
         return $map;
     }
 
-    private function getExistingIndexes(string $tableName): array
+    private function getExistingIndexes($tableName)
     {
         $rows = self::runQuery('SHOW INDEX FROM ' . self::$symbol . $tableName . self::$symbol . " WHERE Key_name != 'PRIMARY'");
-        $map = [];
+        $map = array();
         foreach ($rows as $row) {
             $map[$row['Key_name']] = true;
         }
         return $map;
     }
 
-    private function getExistingForeignKeys(string $tableName): array
+    private function getExistingForeignKeys($tableName)
     {
-        $rows = self::runQuery("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL", [$tableName]);
-        $map = [];
+        $rows = self::runQuery("SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL", array($tableName));
+        $map = array();
         foreach ($rows as $row) {
             $map[$row['CONSTRAINT_NAME']] = true;
         }

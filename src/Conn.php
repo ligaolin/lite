@@ -4,8 +4,7 @@ namespace Lin\Lite;
 
 class Conn implements ConnInterface
 {
-    // 静态缓存实例
-    protected static ?self $instance = null;
+    protected static $instance = null;
     protected static $conn = null;
 
     protected function __construct() {}
@@ -21,71 +20,77 @@ class Conn implements ConnInterface
         return self::$instance;
     }
 
-    static function getInstance(): self
+    static function getInstance()
     {
         return self::$instance;
     }
 
-    function query(string $sql, array $args = [])
+    function query($sql, $args = array())
     {
         $stmt = self::stmt($sql, $args);
         $res = mysqli_stmt_get_result($stmt);
-        $data = [];
-        while ($row = mysqli_fetch_assoc($res)) $data[] = $row;
+        $data = array();
+        while ($row = mysqli_fetch_assoc($res)) {
+            $data[] = $row;
+        }
         mysqli_stmt_close($stmt);
         return $data;
     }
 
-    function exec(string $sql, array $args = [])
+    function exec($sql, $args = array())
     {
         $stmt = self::stmt($sql, $args);
         mysqli_stmt_close($stmt);
     }
 
-    function lastInsertId(): int|string
+    function lastInsertId()
     {
         return mysqli_insert_id(self::$conn);
     }
 
-    // 设置字段/表名的包裹符 
-    function getSymbol(): string
+    function getSymbol()
     {
         return '`';
     }
 
-    protected function stmt(string $sql, array $args)
+    protected function stmt($sql, $args)
     {
         $stmt = mysqli_prepare(self::$conn, $sql);
         if (!empty($args)) {
             $type = '';
-            $bind = [];
+            $bind = array();
             foreach ($args as $v) {
-                // 自动判断类型
-                if (is_int($v)) $type .= 'i';
-                elseif (is_float($v)) $type .= 'd';
-                else $type .= 's';
+                if (is_int($v)) {
+                    $type .= 'i';
+                } elseif (is_float($v)) {
+                    $type .= 'd';
+                } else {
+                    $type .= 's';
+                }
                 $bind[] = $v;
             }
-            mysqli_stmt_bind_param($stmt, $type, ...$bind);
+            $refs = array();
+            $refs[] = $type;
+            for ($i = 0; $i < count($bind); $i++) {
+                $refs[] = &$bind[$i];
+            }
+            call_user_func_array(array($stmt, 'bind_param'), $refs);
         }
 
         mysqli_stmt_execute($stmt);
         return $stmt;
     }
 
-    // 开始事务
     function begin()
     {
-        mysqli_begin_transaction(self::$conn);
+        mysqli_query(self::$conn, "START TRANSACTION");
     }
 
-    // 提交事务
     function commit()
     {
         mysqli_commit(self::$conn);
     }
 
-    // 回滚事务
     function rollback()
     {
         mysqli_rollback(self::$conn);

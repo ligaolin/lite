@@ -4,10 +4,10 @@ namespace Lin\Lite;
 
 interface ConnInterface
 {
-    public function getSymbol(): string;
-    public function query(string $sql, array $args = []);
-    public function exec(string $sql, array $args = []);
-    public function lastInsertId(): int|string;
+    public function getSymbol();
+    public function query($sql, $args = array());
+    public function exec($sql, $args = array());
+    public function lastInsertId();
     public function begin();
     public function commit();
     public function rollback();
