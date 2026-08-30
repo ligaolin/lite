@@ -2,20 +2,14 @@
 
 namespace Lin\Lite;
 
-use Lin\Lite\attr\AutoIncrement;
-use Lin\Lite\attr\Comment;
 use Lin\Lite\attr\DefaultValue;
-use Lin\Lite\attr\ForeignKey;
-use Lin\Lite\attr\Index;
-use Lin\Lite\attr\DisableMigrate;
-use Lin\Lite\attr\PrimaryKey;
-use Lin\Lite\attr\Table as TableAttr;
-use Lin\Lite\attr\Type;
 
 trait Migrate
 {
-    use Exec;
-
+    // 依赖 DB 组合 Save（Save -> Query -> Table -> Exec）间接提供
+    // getTable()/runQuery()/runExec()/getPropAttr()/$symbol 等成员。
+    // 切勿在此 use Table/Exec：PHP 5.4 会把“同一 trait 经多条路径引入”
+    // 判定为方法冲突，导致 Fatal error。
     function syncTable()
     {
         $model = $this->model;

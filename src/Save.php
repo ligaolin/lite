@@ -171,7 +171,7 @@ trait Save
         $this->updates(array($field => $value));
     }
 
-    function checkUnique($msg, $where, $whereArgs = null)
+    function checkUnique($msg, $where)
     {
         $whereArgs = func_get_args();
         array_shift($whereArgs);
@@ -189,6 +189,30 @@ trait Save
             $result = self::runQuery($sql, $whereArgs);
             if (!isset($result[0]['count']) || $result[0]['count']) {
                 throw new \Exception($msg);
+            }
+        }
+        return $this;
+    }
+
+    function copy($model)
+    {
+        if ($model) {
+            if (is_object($model)) {
+                foreach ($model as $key => $val) {
+                    if (is_object($this->model) && property_exists($this->model, $key)) {
+                        $this->model->$key = $val;
+                    } else if (is_array($this->model) && array_key_exists($key, $this->model)) {
+                        $this->model[$key] = $val;
+                    }
+                }
+            } else if (is_array($model)) {
+                foreach ($model as $key => $val) {
+                    if (is_array($this->model) && array_key_exists($key, $this->model)) {
+                        $this->model[$key] = $val;
+                    } else if (is_object($this->model) && property_exists($this->model, $key)) {
+                        $this->model->$key = $val;
+                    }
+                }
             }
         }
         return $this;

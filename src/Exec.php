@@ -99,7 +99,7 @@ trait Exec
         $this->start = microtime(true);
     }
 
-    private function getPropAttr(\ReflectionProperty $prop, $attrClass)
+    protected function getPropAttr(\ReflectionProperty $prop, $attrClass)
     {
         $attrs = AnnotationReader::getPropertyAnnotations($prop->getDeclaringClass()->getName(), $prop->getName(), $attrClass);
         if (!empty($attrs)) {

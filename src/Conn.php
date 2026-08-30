@@ -56,6 +56,9 @@ class Conn implements ConnInterface
     protected function stmt($sql, $args)
     {
         $stmt = mysqli_prepare(self::$conn, $sql);
+        if ($stmt === false) {
+            throw new \Exception('SQL prepare failed: ' . mysqli_error(self::$conn));
+        }
         if (!empty($args)) {
             $type = '';
             $bind = array();
@@ -77,7 +80,11 @@ class Conn implements ConnInterface
             call_user_func_array(array($stmt, 'bind_param'), $refs);
         }
 
-        mysqli_stmt_execute($stmt);
+        if (mysqli_stmt_execute($stmt) === false) {
+            $err = mysqli_stmt_error($stmt);
+            mysqli_stmt_close($stmt);
+            throw new \Exception('SQL execute failed: ' . $err);
+        }
         return $stmt;
     }
 

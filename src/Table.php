@@ -2,9 +2,6 @@
 
 namespace Lin\Lite;
 
-use Lin\Lite\attr\PrimaryKey;
-use Lin\Lite\attr\Table as TableAttr;
-
 trait Table
 {
     use Exec;
@@ -71,7 +68,7 @@ trait Table
     function getFields()
     {
         if (!$this->fields) {
-            if (method_exists($this->model, 'getFields')) {
+            if ($this->model && method_exists($this->model, 'getFields')) {
                 $this->fields = $this->model->getFields();
             } else if ($attr = $this->getFieldsAttr()) {
                 $this->fields = array();

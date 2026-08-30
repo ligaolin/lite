@@ -14,7 +14,6 @@ class Json
         try {
             $ref = new \ReflectionClass($model);
             if ($ref->hasProperty($key)) {
-                $prop = $ref->getProperty($key);
                 return AnnotationReader::hasPropertyAnnotation($ref->getName(), $key, __CLASS__);
             }
         } catch (\ReflectionException $e) {

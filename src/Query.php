@@ -5,7 +5,6 @@ namespace Lin\Lite;
 use Lin\Lite\attr\Json;
 use Lin\Lite\attr\DisableRead;
 use Lin\Lite\attr\BelongsTo;
-use Lin\Lite\attr\ForeignKey;
 use Lin\Lite\attr\HasOne;
 use Lin\Lite\attr\HasMany;
 
@@ -36,18 +35,8 @@ trait Query
     {
         $val = func_get_args();
         array_shift($val);
-        foreach ($val as &$v) {
-            if (is_array($v)) {
-                $pos = strpos($sql, '?');
-                if ($pos !== false) {
-                    $placeholders = join(',', array_fill(0, count($v), '?'));
-                    $sql = substr($sql, 0, $pos) . $placeholders . substr($sql, $pos + 1);
-                }
-                $this->whereArgs = array_merge($this->whereArgs, $v);
-            } else {
-                $this->whereArgs[] = $v;
-            }
-        }
+        list($sql, $bound) = $this->expandIn($sql, $val);
+        $this->whereArgs = array_merge($this->whereArgs, $bound);
         $this->where[] = $sql;
         return $this;
     }
@@ -55,19 +44,48 @@ trait Query
     function whereNotEmpty($sql, $val)
     {
         if ($val) {
-            if (is_array($val)) {
-                $pos = strpos($sql, '?');
-                if ($pos !== false) {
-                    $placeholders = join(',', array_fill(0, count($val), '?'));
-                    $sql = substr($sql, 0, $pos) . $placeholders . substr($sql, $pos + 1);
-                }
-                $this->whereArgs = array_merge($this->whereArgs, $val);
-            } else {
-                $this->whereArgs[] = $val;
-            }
+            list($sql, $bound) = $this->expandIn($sql, array($val));
+            $this->whereArgs = array_merge($this->whereArgs, $bound);
             $this->where[] = $sql;
         }
         return $this;
+    }
+
+    // 按占位符顺序展开数组参数为多个 ?（IN 查询）
+    protected function expandIn($sql, $args)
+    {
+        $out = '';
+        $bound = array();
+        $argIndex = 0;
+        $len = strlen($sql);
+        for ($i = 0; $i < $len; $i++) {
+            if ($sql[$i] === '?') {
+                if ($argIndex < count($args) && is_array($args[$argIndex])) {
+                    $out .= join(',', array_fill(0, count($args[$argIndex]), '?'));
+                    foreach ($args[$argIndex] as $item) {
+                        $bound[] = $item;
+                    }
+                } else {
+                    $out .= '?';
+                    if ($argIndex < count($args)) {
+                        $bound[] = $args[$argIndex];
+                    }
+                }
+                $argIndex++;
+            } else {
+                $out .= $sql[$i];
+            }
+        }
+        for ($i = $argIndex; $i < count($args); $i++) {
+            if (is_array($args[$i])) {
+                foreach ($args[$i] as $item) {
+                    $bound[] = $item;
+                }
+            } else {
+                $bound[] = $args[$i];
+            }
+        }
+        return array($out, $bound);
     }
 
     function like($sql, $val, $like = '')
@@ -235,7 +253,7 @@ trait Query
     function first(&$data)
     {
         if (!$this->model && is_object($data)) $this->model = $data;
-        if (method_exists($this->model, 'beforeFind')) {
+        if ($this->model && method_exists($this->model, 'beforeFind')) {
             $this->model->beforeFind();
         }
         $arr = array('SELECT');
@@ -263,11 +281,15 @@ trait Query
         $result = self::runQuery($sql, $args);
 
         if (isset($result[0])) {
-            $modelClass = get_class($this->model);
-            $data = new $modelClass();
-            $this->setVals($data, $result[0]);
+            if ($this->model) {
+                $modelClass = get_class($this->model);
+                $data = new $modelClass();
+                $this->setVals($data, $result[0]);
+            } else {
+                $data = $result[0];
+            }
         } else {
-            $data = $this->model;
+            $data = null;
         }
         $this->preloadMatch($data);
         return $this;
@@ -276,7 +298,7 @@ trait Query
     function find(&$data)
     {
         if (!$this->model && isset($data[0]) && is_object($data[0])) $this->model = $data[0];
-        if (method_exists($this->model, 'beforeFind')) {
+        if ($this->model && method_exists($this->model, 'beforeFind')) {
             $this->model->beforeFind();
         }
         $arr = array('SELECT');
@@ -302,8 +324,8 @@ trait Query
         $sql = join(' ', $arr);
         $args = $this->toArgs();
         $result = self::runQuery($sql, $args);
-        $data = array();
         if ($this->model) {
+            $data = array();
             $modelClass = get_class($this->model);
             foreach ($result as $item) {
                 $m = new $modelClass();
@@ -311,6 +333,8 @@ trait Query
                 $data[] = $m;
             }
             $this->preloadMatch($data);
+        } else {
+            $data = $result;
         }
         return $this;
     }
@@ -431,6 +455,7 @@ trait Query
     protected function preloadMatch(&$data)
     {
         if (empty($this->preloads)) return;
+        if (empty($data)) return;
         foreach ($this->preloads as $entry) {
             $m = $entry['db'];
             $first = $entry['first'];

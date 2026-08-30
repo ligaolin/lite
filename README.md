@@ -9,7 +9,7 @@ ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、
 | v2.x | ≥ 8.0 | `#[Attribute]` 原生属性 |
 | v1.x | ≥ 5.4 | `@Attribute` PHPDoc 注解 |
 
-Composer 会根据你的 PHP 版本自动安装对应版本。
+> Composer 依据各版本 tag 的 `composer.json` 里 `php` 约束自动选择：v1.x 约束 `>=5.4`，v2.x 约束 `>=8.0`。
 
 ## 目录
 
@@ -395,9 +395,9 @@ DB::model(new Config())->where('status = ?', 0)->delete();
 
 | 类型 | 外键位置 | 示例 |
 |------|----------|------|
-| BelongsTo | 我方表 | 配置 **属于** 一种类型 → `$config_type_id` 加 `#[BelongsTo(ConfigType::class)]` |
-| HasOne | 对方表 | 类型 **有一个** 配置 → `$config` 加 `#[HasOne(Config::class)]` |
-| HasMany | 对方表 | 类型 **有多个** 配置 → `$configs` 加 `#[HasMany(Config::class)]` |
+| BelongsTo | 我方表 | 配置 **属于** 一种类型 → `$config_type_id` 加 `@BelongsTo` |
+| HasOne | 对方表 | 类型 **有一个** 配置 → `$config` 加 `@HasOne` |
+| HasMany | 对方表 | 类型 **有多个** 配置 → `$configs` 加 `@HasMany` |
 
 ### 使用方式
 
@@ -405,31 +405,35 @@ DB::model(new Config())->where('status = ?', 0)->delete();
 // 模型中注解
 class Config
 {
-    #[BelongsTo(ConfigType::class)]
+    /**
+     * @BelongsTo(model: 'app\model\ConfigType')
+     */
     public $config_type_id;
 }
 
 class ConfigType
 {
-    #[HasMany(Config::class)]
+    /**
+     * @HasMany(model: 'app\model\Config')
+     */
     public $configs;
 }
 
-// 查询时 preload() 预加载
+// 查询时 preload() 预加载，传入关联模型实例，自动从注解读关系
 $list = [];
 DB::model(new Config())
-    ->preload(ConfigType::class) // 属性名，自动从注解读关系
+    ->preload(new ConfigType())
     ->find($list);
 
 // 访问结果
 foreach ($list as $item) {
-    echo $item->configType->name;
+    echo $item->config_type_id->name;
 }
 
 // HasMany 预加载
 $list = [];
 DB::model(new ConfigType())
-    ->preload(Config::class)
+    ->preload(new Config())
     ->find($list);
 
 foreach ($list as $type) {
@@ -441,7 +445,7 @@ foreach ($list as $type) {
 // 自定义预加载条件
 $list = [];
 DB::model(new Config())
-    ->preload(ConfigType::class, function ($db) {
+    ->preload(new ConfigType(), function ($db) {
         $db->order('name desc');
     })
     ->find($list);
@@ -518,10 +522,10 @@ Conn::init($host, $user, $password, $database, $port);
 ```php
 interface ConnInterface
 {
-    public function getSymbol(): string;           // 名称标识符包裹符，如 `、"
-    public function query(string $sql, array $args = []);  // 查询，有返回结果
-    public function exec(string $sql, array $args = []);   // 执行，无返回结果
-    public function lastInsertId(): int|string;    // 最后插入ID
+    public function getSymbol();                   // 名称标识符包裹符，如 `、"
+    public function query($sql, $args = array());  // 查询，有返回结果
+    public function exec($sql, $args = array());   // 执行，无返回结果
+    public function lastInsertId();                // 最后插入ID
     public function begin();                       // 开始事务
     public function commit();                      // 提交事务
     public function rollback();                    // 回滚事务
@@ -577,7 +581,7 @@ DB::model(new Config())
     ->find($list);
 
 // 函数方式
-function active(DB $db): void
+function active(DB $db)
 {
     $db->where('status = ?', 1);
 }
