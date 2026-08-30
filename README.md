@@ -2,6 +2,15 @@
 
 ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、增删改、关联预加载、自动建表迁移。
 
+## 版本选择
+
+| 版本 | PHP 要求 | 注解语法 |
+|------|----------|----------|
+| v2.x | ≥ 8.0 | `#[Attribute]` 原生属性 |
+| v1.x | ≥ 5.4 | `@Attribute` PHPDoc 注解 |
+
+Composer 会根据你的 PHP 版本自动安装对应版本。
+
 ## 目录
 
 - [注解属性](#注解属性)
@@ -24,31 +33,63 @@ ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、
 
 所有注解位于 `Lin\Lite\attr` 命名空间。
 
+### 两种语法
+
+**PHP 8.0+（v2.x）：**使用原生 `#[Attribute]` 语法：
+
+```php
+#[Table(name: 'users', comment: '用户表')]
+class User
+{
+    #[PrimaryKey, AutoIncrement, Type(type: 'int', length: 11)]
+    public $id;
+}
+```
+
+**PHP 5.4+（v1.x）：**使用 PHPDoc `@属性名` 语法，参数用 `key: value` 逗号分隔：
+
+```php
+/**
+ * @Table(name: 'users', comment: '用户表')
+ */
+class User
+{
+    /**
+     * @PrimaryKey
+     * @AutoIncrement
+     * @Type(type: 'int', length: 11)
+     */
+    public $id;
+}
+```
+
+> 注意：多个注解换行写，每个 `@注解` 一行。参数格式 `key: value`，字符串用单引号或双引号包裹。
+
 ### 表注解（类级别）
 
 | 注解 | 作用 | 参数 |
 |------|------|------|
-| `#[Table]` | 定义表信息 | `name`(表名), `engine`, `charset`, `collation`, `comment` |
+| `Table` | 定义表信息 | `name`(表名), `engine`, `charset`, `collation`, `comment` |
 
 ### 列注解（属性级别）
 
 | 注解 | 作用 | 参数 |
 |------|------|------|
-| `#[Type]` | SQL 类型 | `type`, `length`, `scale` |
-| `#[Comment]` | 列注释 | `comment` |
-| `#[PrimaryKey]` | 主键 | 无参数 |
-| `#[AutoIncrement]` | 自增 | 无参数 |
-| `#[DefaultValue]` | 默认值 | `value` |
-| `#[Index]` | 普通索引 | `name`（可选，默认自动生成） |
-| `#[Json]` | JSON 自动转换 | 无参数，写入 encode，读出 decode |
-| `#[ForeignKey]` | 外键 | `table`(引用表), `column='id'`, `onDelete`, `onUpdate` |
+| `Type` | SQL 类型 | `type`, `length`, `scale` |
+| `Comment` | 列注释 | `comment` |
+| `PrimaryKey` | 主键 | 无参数 |
+| `AutoIncrement` | 自增 | 无参数 |
+| `DefaultValue` | 默认值 | `value` |
+| `Index` | 普通索引 | `name`（可选，默认自动生成） |
+| `Json` | JSON 自动转换 | 无参数，写入 encode，读出 decode |
+| `ForeignKey` | 外键 | `table`(引用表), `column: 'id'`, `onDelete`, `onUpdate` |
 
 ### 时间自动填充
 
 | 注解 | 作用 |
 |------|------|
-| `#[CreatedAt]` | INSERT 时如果为 null，自动填充当前时间（`Y-m-d H:i:s`） |
-| `#[UpdatedAt]` | INSERT/UPDATE 时始终填充当前时间 |
+| `CreatedAt` | INSERT 时如果为 null，自动填充当前时间（`Y-m-d H:i:s`） |
+| `UpdatedAt` | INSERT/UPDATE 时始终填充当前时间 |
 
 ### 权限注解（默认允许）
 
@@ -56,20 +97,20 @@ ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、
 
 | 注解 | 作用 |
 |------|------|
-| `#[DisableRead]` | 查询时跳过赋值 |
-| `#[DisableCreate]` | INSERT 时跳过该字段 |
-| `#[DisableUpdate]` | UPDATE 时跳过该字段 |
-| `#[DisableMigrate]` | 迁移/建表时不生成该列 |
+| `DisableRead` | 查询时跳过赋值 |
+| `DisableCreate` | INSERT 时跳过该字段 |
+| `DisableUpdate` | UPDATE 时跳过该字段 |
+| `DisableMigrate` | 迁移/建表时不生成该列 |
 
 ### 关联注解
 
 | 注解 | 作用 | 参数 |
 |------|------|------|
-| `#[BelongsTo(Model::class)]` | BelongsTo（我方存外键） | 关联模型类 |
-| `#[HasOne(Model::class)]` | HasOne（对方存外键，一对一） | 关联模型类 |
-| `#[HasMany(Model::class)]` | HasMany（对方存外键，一对多） | 关联模型类 |
+| `BelongsTo` | BelongsTo（我方存外键） | `model` 关联模型类 |
+| `HasOne` | HasOne（对方存外键，一对一） | `model` 关联模型类 |
+| `HasMany` | HasMany（对方存外键，一对多） | `model` 关联模型类 |
 
-### 完整模型示例
+### 完整模型示例（PHP 8.0+）
 
 ```php
 namespace app\model;
@@ -107,6 +148,77 @@ class Config
     public $updated_at;
 
     #[HasMany(ConfigValue::class)]
+    public $values;
+}
+```
+
+### 完整模型示例（PHP 5.4+）
+
+```php
+namespace app\model;
+
+use Lin\Lite\attr\Table;
+use Lin\Lite\attr\PrimaryKey;
+use Lin\Lite\attr\AutoIncrement;
+use Lin\Lite\attr\Type;
+use Lin\Lite\attr\DefaultValue;
+use Lin\Lite\attr\Comment;
+use Lin\Lite\attr\CreatedAt;
+use Lin\Lite\attr\UpdatedAt;
+use Lin\Lite\attr\BelongsTo;
+use Lin\Lite\attr\HasMany;
+
+/**
+ * @Table(comment: '配置')
+ */
+class Config
+{
+    /**
+     * @PrimaryKey
+     * @AutoIncrement
+     * @Type(type: 'int', length: 11)
+     * @Comment(comment: 'ID')
+     */
+    public $id;
+
+    /**
+     * @Type(type: 'varchar', length: 100)
+     * @DefaultValue(value: '')
+     * @Comment(comment: '名称')
+     */
+    public $name;
+
+    /**
+     * @Type(type: 'int', length: 11)
+     * @Comment(comment: '配置类型ID')
+     * @BelongsTo(model: 'app\model\ConfigType')
+     */
+    public $config_type_id;
+
+    /**
+     * @Type(type: 'text')
+     * @Json
+     * @Comment(comment: 'JSON 值')
+     */
+    public $vals;
+
+    /**
+     * @CreatedAt
+     * @Type(type: 'datetime')
+     * @Comment(comment: '创建时间')
+     */
+    public $created_at;
+
+    /**
+     * @UpdatedAt
+     * @Type(type: 'datetime')
+     * @Comment(comment: '更新时间')
+     */
+    public $updated_at;
+
+    /**
+     * @HasMany(model: 'app\model\ConfigValue')
+     */
     public $values;
 }
 ```
