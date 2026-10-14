@@ -29,7 +29,7 @@ trait Query
 
     function select(string ...$field)
     {
-        $this->field = $field;
+        $this->field = array_merge($this->field, $field);
         return $this;
     }
 
