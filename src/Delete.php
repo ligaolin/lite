@@ -7,6 +7,11 @@ trait Delete
     use Table;
 
     // 删除数据
+    function delete()
+    {
+        return $this->Delete();
+    }
+
     function Delete()
     {
         if ($this->model && method_exists($this->model, 'beforeDelete')) {
