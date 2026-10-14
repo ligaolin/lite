@@ -17,22 +17,22 @@ class DB
     // 基于完整表名创建实例
     static function table(string $table, $conn = null)
     {
-        if ($conn !== null) {
-            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
-        }
         $db = new static();
         $db->table = $table;
+        if ($conn !== null) {
+            $db->instanceConn = is_string($conn) ? Conn::getInstance($conn) : $conn;
+        }
         return $db;
     }
 
     // 基于模型创建实例，推荐
     static function model(object $model, $conn = null)
     {
-        if ($conn !== null) {
-            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
-        }
         $db = new static();
         $db->model = $model;
+        if ($conn !== null) {
+            $db->instanceConn = is_string($conn) ? Conn::getInstance($conn) : $conn;
+        }
         return $db;
     }
 

@@ -7,6 +7,7 @@ use DateTime;
 trait Exec
 {
     static protected $conn;
+    protected $instanceConn;
     protected $debug = false;
     static protected string $symbol = '`';
     protected float $start = 0;
@@ -51,7 +52,11 @@ trait Exec
     function runQuery($sql, array $args = [])
     {
         $start = microtime(true);
-        $res = self::query($sql, $args);
+        if ($this->instanceConn) {
+            $res = $this->instanceConn->query($sql, $args);
+        } else {
+            $res = self::query($sql, $args);
+        }
         $this->show($sql, $args,  round((microtime(true) - $start) * 1000, 3), count($res));
         return $res;
     }
@@ -59,7 +64,11 @@ trait Exec
     function runExec($sql, array $args = [])
     {
         $start = microtime(true);
-        self::exec($sql, $args);
+        if ($this->instanceConn) {
+            $this->instanceConn->exec($sql, $args);
+        } else {
+            self::exec($sql, $args);
+        }
         $this->show($sql, $args, round((microtime(true) - $start) * 1000, 3), 0);
     }
 
