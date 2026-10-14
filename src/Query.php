@@ -243,7 +243,7 @@ trait Query
     function first(object|array|null &$data)
     {
         if (!$this->model && is_object($data)) $this->model = $data;
-        if (method_exists($this->model, 'beforeFind')) {
+        if ($this->model && method_exists($this->model, 'beforeFind')) {
             $this->model->beforeFind();
         }
         $arr = ['SELECT'];
@@ -271,10 +271,15 @@ trait Query
         $result = self::runQuery($sql, $args);
 
         if (isset($result[0])) {
-            $data = new ($this->model::class);
-            $this->setVals($data, $result[0]);
+            if ($this->model) {
+                $modelClass = get_class($this->model);
+                $data = new $modelClass();
+                $this->setVals($data, $result[0]);
+            } else {
+                $data = $result[0];
+            }
         } else {
-            $data = $this->model;
+            $data = null;
         }
         $this->preloadMatch($data);
         return $this;
@@ -284,7 +289,7 @@ trait Query
     function find(array|null &$data)
     {
         if (!$this->model && isset($data[0]) && is_object($data[0])) $this->model = $data[0];
-        if (method_exists($this->model, 'beforeFind')) {
+        if ($this->model && method_exists($this->model, 'beforeFind')) {
             $this->model->beforeFind();
         }
         $arr = ['SELECT'];
@@ -311,14 +316,17 @@ trait Query
         $sql = join(' ', $arr);
         $args = $this->toArgs();
         $result = self::runQuery($sql, $args);
-        $data = [];
         if ($this->model) {
+            $data = [];
+            $modelClass = get_class($this->model);
             foreach ($result as $item) {
-                $m = new ($this->model::class);
+                $m = new $modelClass();
                 $this->setVals($m, $item);
                 $data[] = $m;
             }
             $this->preloadMatch($data);
+        } else {
+            $data = $result;
         }
         return $this;
     }
