@@ -27,7 +27,7 @@ trait Query
 
     function select()
     {
-        $this->field = func_get_args();
+        $this->field = array_merge($this->field, func_get_args());
         return $this;
     }
 
