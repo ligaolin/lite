@@ -15,16 +15,22 @@ class DB
     use Migrate;
 
     // 基于完整表名创建实例
-    static function table(string $table)
+    static function table(string $table, $conn = null)
     {
+        if ($conn !== null) {
+            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
+        }
         $db = new static();
         $db->table = $table;
         return $db;
     }
 
     // 基于模型创建实例，推荐
-    static function model(object $model)
+    static function model(object $model, $conn = null)
     {
+        if ($conn !== null) {
+            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
+        }
         $db = new static();
         $db->model = $model;
         return $db;
