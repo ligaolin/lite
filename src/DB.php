@@ -15,21 +15,21 @@ class DB
 
     static function table($table, $conn = null)
     {
-        if ($conn !== null) {
-            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
-        }
         $db = new static();
         $db->table = $table;
+        if ($conn !== null) {
+            $db->instanceConn = is_string($conn) ? Conn::getInstance($conn) : $conn;
+        }
         return $db;
     }
 
     static function model($model, $conn = null)
     {
-        if ($conn !== null) {
-            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
-        }
         $db = new static();
         $db->model = $model;
+        if ($conn !== null) {
+            $db->instanceConn = is_string($conn) ? Conn::getInstance($conn) : $conn;
+        }
         return $db;
     }
 
