@@ -517,6 +517,50 @@ Conn::init($host, $user, $password, $database, $port);
 
 ### 自定义数据库连接
 
+#### 多数据库连接
+
+`Conn` 支持同时连接多个数据库，通过名称区分：
+
+```php
+use Lin\Lite\Conn;
+use Lin\Lite\DB;
+
+// 连接默认数据库
+Conn::init('127.0.0.1', 'root', '123456', 'db1');
+// 连接第二个数据库
+Conn::connect('db2', '192.168.1.100', 'root', '123456', 'db2');
+// 连接第三个
+Conn::connect('db3', '10.0.0.1', 'root', '123456', 'db3');
+```
+
+在 `table()` / `model()` 第二个参数指定连接名即可切换：
+
+```php
+// 默认连接（不传第二个参数，老代码无需改动）
+DB::table('users')->where('id = ?', 1)->value('name', $name);
+
+// 操作 db2
+DB::table('users', 'db2')->where('id = ?', 1)->value('name', $name);
+DB::model($order, 'db2')->save();
+
+// 传入连接实例也可以
+DB::table('logs', Conn::getInstance('db3'))->create(['msg' => 'done']);
+
+// 多库之间随意切换
+DB::table('users', 'db1')->where('id = ?', 1)->value('name', $name);
+DB::table('orders', 'db2')->where('status = ?', 'paid')->limit(10)->values(['id'], $data);
+DB::table('logs', 'db1')->create(['msg' => 'back to db1']);
+```
+
+也可以使用 `DB::setConn()` 全局切换当前连接：
+
+```php
+DB::setConn(Conn::getInstance('db2'));
+DB::table('users')->where('id = ?', 1)->value('name', $name);
+```
+
+#### 自定义连接实现
+
 `ConnInterface` 定义了连接需要实现的接口：
 
 ```php

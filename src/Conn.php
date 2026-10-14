@@ -4,30 +4,37 @@ namespace Lin\Lite;
 
 class Conn implements ConnInterface
 {
-    protected static $instance = null;
-    protected static $conn = null;
+    protected static $instances = array();
+    protected $conn = null;
 
     protected function __construct() {}
     protected function __clone() {}
 
     static function init($host, $user, $password, $database, $port = 3306)
     {
-        self::$conn = mysqli_connect($host, $user, $password, $database, $port);
+        return self::connect('default', $host, $user, $password, $database, $port);
+    }
+
+    static function connect($name, $host, $user, $password, $database, $port = 3306)
+    {
+        $conn = mysqli_connect($host, $user, $password, $database, $port);
         if (mysqli_connect_errno()) {
             throw new \Exception('数据库连接失败');
         }
-        self::$instance = new self();
-        return self::$instance;
+        $instance = new self();
+        $instance->conn = $conn;
+        self::$instances[$name] = $instance;
+        return $instance;
     }
 
-    static function getInstance()
+    static function getInstance($name = 'default')
     {
-        return self::$instance;
+        return isset(self::$instances[$name]) ? self::$instances[$name] : null;
     }
 
     function query($sql, $args = array())
     {
-        $stmt = self::stmt($sql, $args);
+        $stmt = $this->stmt($sql, $args);
         $res = mysqli_stmt_get_result($stmt);
         $data = array();
         while ($row = mysqli_fetch_assoc($res)) {
@@ -39,13 +46,13 @@ class Conn implements ConnInterface
 
     function exec($sql, $args = array())
     {
-        $stmt = self::stmt($sql, $args);
+        $stmt = $this->stmt($sql, $args);
         mysqli_stmt_close($stmt);
     }
 
     function lastInsertId()
     {
-        return mysqli_insert_id(self::$conn);
+        return mysqli_insert_id($this->conn);
     }
 
     function getSymbol()
@@ -55,9 +62,9 @@ class Conn implements ConnInterface
 
     protected function stmt($sql, $args)
     {
-        $stmt = mysqli_prepare(self::$conn, $sql);
+        $stmt = mysqli_prepare($this->conn, $sql);
         if ($stmt === false) {
-            throw new \Exception('SQL prepare failed: ' . mysqli_error(self::$conn));
+            throw new \Exception('SQL prepare failed: ' . mysqli_error($this->conn));
         }
         if (!empty($args)) {
             $type = '';
@@ -90,16 +97,16 @@ class Conn implements ConnInterface
 
     function begin()
     {
-        mysqli_query(self::$conn, "START TRANSACTION");
+        mysqli_query($this->conn, "START TRANSACTION");
     }
 
     function commit()
     {
-        mysqli_commit(self::$conn);
+        mysqli_commit($this->conn);
     }
 
     function rollback()
     {
-        mysqli_rollback(self::$conn);
+        mysqli_rollback($this->conn);
     }
 }

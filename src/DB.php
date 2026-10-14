@@ -13,15 +13,21 @@ class DB
     use Delete;
     use Migrate;
 
-    static function table($table)
+    static function table($table, $conn = null)
     {
+        if ($conn !== null) {
+            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
+        }
         $db = new static();
         $db->table = $table;
         return $db;
     }
 
-    static function model($model)
+    static function model($model, $conn = null)
     {
+        if ($conn !== null) {
+            self::setConn(is_string($conn) ? Conn::getInstance($conn) : $conn);
+        }
         $db = new static();
         $db->model = $model;
         return $db;
