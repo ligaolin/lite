@@ -57,9 +57,14 @@ trait Query
         $out = '';
         $bound = array();
         $argIndex = 0;
+        $inStr = false;
         $len = strlen($sql);
         for ($i = 0; $i < $len; $i++) {
-            if ($sql[$i] === '?') {
+            $ch = $sql[$i];
+            if ($ch === "'") {
+                $inStr = !$inStr;
+                $out .= $ch;
+            } elseif (!$inStr && $ch === '?') {
                 if ($argIndex < count($args) && is_array($args[$argIndex])) {
                     $out .= join(',', array_fill(0, count($args[$argIndex]), '?'));
                     foreach ($args[$argIndex] as $item) {
@@ -73,7 +78,7 @@ trait Query
                 }
                 $argIndex++;
             } else {
-                $out .= $sql[$i];
+                $out .= $ch;
             }
         }
         for ($i = $argIndex; $i < count($args); $i++) {
@@ -164,7 +169,7 @@ trait Query
         $arr = array('SELECT');
         $arr[] = $field;
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -194,7 +199,7 @@ trait Query
         $arr = array('SELECT');
         $arr[] = join(',', $fields);
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -230,7 +235,7 @@ trait Query
         if ($this->distinct) $arr[] = 'DISTINCT';
         $arr[] = 'COUNT(*)';
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -261,7 +266,7 @@ trait Query
         if (!count($this->field)) $this->field = array('*');
         $arr[] = join(', ', $this->field);
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -306,7 +311,7 @@ trait Query
         if (!count($this->field)) $this->field = array('*');
         $arr[] = join(', ', $this->field);
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -359,7 +364,7 @@ trait Query
     function exists(&$exist)
     {
         $arr = array('SELECT 1 FROM');
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);

@@ -18,7 +18,7 @@ class DB
         $db = new static();
         $db->table = $table;
         if ($conn !== null) {
-            $db->instanceConn = is_string($conn) ? Conn::getInstance($conn) : $conn;
+            $db->instanceConn = is_string($conn) ? self::resolveConn($conn) : $conn;
         }
         return $db;
     }
@@ -28,9 +28,16 @@ class DB
         $db = new static();
         $db->model = $model;
         if ($conn !== null) {
-            $db->instanceConn = is_string($conn) ? Conn::getInstance($conn) : $conn;
+            $db->instanceConn = is_string($conn) ? self::resolveConn($conn) : $conn;
         }
         return $db;
+    }
+
+    static protected function resolveConn($name)
+    {
+        $conn = Conn::getInstance($name);
+        if ($conn) return $conn;
+        return PgsqlConn::getInstance($name);
     }
 
     function scope($scope)

@@ -1,6 +1,6 @@
 # lite PHP ORM 文档
 
-ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、增删改、关联预加载、自动建表迁移。
+ORM，支持 MySQL 和 PostgreSQL，通过注解定义模型，支持查询、增删改、关联预加载、自动建表迁移。
 
 ## 版本选择
 
@@ -21,6 +21,7 @@ ORM，目前仅实现了MySQL部分，通过注解定义模型，支持查询、
 - [关联预加载](#关联预加载)
 - [表迁移](#表迁移)
 - [原生 SQL](#原生-sql)
+- [PostgreSQL 连接](#postgresql-连接)
 - [自定义数据库连接](#自定义数据库连接)
 - [事务](#事务)
 - [Scope 复用](#scope-复用)
@@ -457,6 +458,8 @@ DB::model(new Config())
 
 根据模型注解自动创建/增量同步表结构。
 
+> **注意**：`syncTable()` 目前仅支持 MySQL，PostgreSQL 需手动建表或等待后续版本支持。
+
 ```php
 // 同步表结构，只增加不修改不删除
 DB::model(new ConfigType())->syncTable();
@@ -493,6 +496,52 @@ $id = DB::lastInsertId();
 // 开启调试
 DB::model(new Config())->debug()->find($list);
 ```
+
+---
+
+## PostgreSQL 连接
+
+内置 `PgsqlConn` 实现，`?` 占位符自动转为 PostgreSQL 的 `$1`、`$2`... 格式，引用符号自动切换为 `"`。**SQL 书写习惯与 MySQL 完全一致。**
+
+### 初始化
+
+```php
+use Lin\Lite\PgsqlConn;
+
+PgsqlConn::connect('default', '127.0.0.1', 'postgres', '123456', 'mydb', 5432);
+```
+
+### 连接多个 PostgreSQL 数据库
+
+```php
+PgsqlConn::connect('pg1', '10.0.0.1', 'postgres', '123456', 'db1');
+PgsqlConn::connect('pg2', '10.0.0.2', 'postgres', '123456', 'db2');
+```
+
+### MySQL 与 PostgreSQL 混合使用
+
+`table()` / `model()` 第二个参数传入连接名，`DB` 自动从 MySQL 和 PostgreSQL 连接池中查找：
+
+```php
+use Lin\Lite\Conn;
+use Lin\Lite\PgsqlConn;
+use Lin\Lite\DB;
+
+// 初始化两个库
+Conn::init('127.0.0.1', 'root', '123456', 'mysql_db');
+PgsqlConn::connect('pg', '127.0.0.1', 'postgres', '123456', 'pg_db');
+
+// 操作 MySQL 表
+DB::table('users')->where('id = ?', 1)->value('name', $name);
+
+// 操作 PostgreSQL 表，用法完全一致，? 自动转为 $1
+DB::table('logs', 'pg')->where('type = ?', 'info')->limit(10)->find($list);
+DB::model($order, 'pg')->save();
+```
+
+> **查询/写入写法无需改动**：`PgsqlConn` 内部将 `?` 自动转为 `$1` `$2`...，字符串内的 `?` 不会被误转换；引用符号从 `` ` `` 自动切换为 `"`。
+
+> **已知限制**：`syncTable()` 表迁移使用了 MySQL 特有的 `INFORMATION_SCHEMA`、`SHOW INDEX`、`AUTO_INCREMENT` 等语法，目前仅支持 MySQL。PostgreSQL 下的建表迁移需手动或后续版本支持。
 
 ---
 
@@ -552,13 +601,6 @@ DB::table('orders', 'db2')->where('status = ?', 'paid')->limit(10)->values(['id'
 DB::table('logs', 'db1')->create(['msg' => 'back to db1']);
 ```
 
-也可以使用 `DB::setConn()` 全局切换当前连接：
-
-```php
-DB::setConn(Conn::getInstance('db2'));
-DB::table('users')->where('id = ?', 1)->value('name', $name);
-```
-
 #### 自定义连接实现
 
 `ConnInterface` 定义了连接需要实现的接口：
@@ -576,7 +618,7 @@ interface ConnInterface
 }
 ```
 
-默认使用 `Conn`（MySQLi 实现），也可切换为自定义连接：
+默认提供 `Conn`（MySQLi）和 `PgsqlConn`（PostgreSQL）两个内置实现，也可切换为自定义连接：
 
 ```php
 use Lin\Lite\DB;

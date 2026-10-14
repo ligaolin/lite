@@ -139,7 +139,7 @@ trait Migrate
 
     private function buildCreateTable($tableName, $columns, $indexes, $foreignKeys, $tableAttr)
     {
-        $symbol = self::$symbol;
+        $symbol = $this->getQuoteSymbol();
         $lines = array();
 
         $pks = array();
@@ -193,7 +193,7 @@ trait Migrate
         $existing = $this->getExistingColumns($tableName);
         foreach ($columns as $name => $def) {
             if (!isset($existing[$name])) {
-                $symbol = self::$symbol;
+                $symbol = $this->getQuoteSymbol();
                 $sql = "ALTER TABLE {$symbol}{$tableName}{$symbol} ADD COLUMN {$symbol}{$name}{$symbol} $def";
                 $this->runExec($sql);
             }
@@ -205,7 +205,7 @@ trait Migrate
         $existing = $this->getExistingIndexes($tableName);
         foreach ($indexes as $idxName => $colName) {
             if (!isset($existing[$idxName])) {
-                $symbol = self::$symbol;
+                $symbol = $this->getQuoteSymbol();
                 $sql = "ALTER TABLE {$symbol}{$tableName}{$symbol} ADD INDEX {$symbol}{$idxName}{$symbol} ({$symbol}{$colName}{$symbol})";
                 $this->runExec($sql);
             }
@@ -218,7 +218,7 @@ trait Migrate
         foreach ($foreignKeys as $colName => $fk) {
             $fkName = "fk_{$colName}";
             if (!isset($existing[$fkName])) {
-                $symbol = self::$symbol;
+                $symbol = $this->getQuoteSymbol();
                 $sql = "ALTER TABLE {$symbol}{$tableName}{$symbol} ADD CONSTRAINT {$symbol}{$fkName}{$symbol} FOREIGN KEY ({$symbol}{$colName}{$symbol}) REFERENCES {$symbol}{$fk['table']}{$symbol} ({$symbol}{$fk['column']}{$symbol})";
                 if ($fk['onDelete']) {
                     $sql .= " ON DELETE {$fk['onDelete']}";
@@ -243,7 +243,7 @@ trait Migrate
 
     private function getExistingIndexes($tableName)
     {
-        $rows = self::runQuery('SHOW INDEX FROM ' . self::$symbol . $tableName . self::$symbol . " WHERE Key_name != 'PRIMARY'");
+        $rows = self::runQuery('SHOW INDEX FROM ' . $this->getQuoteSymbol() . $tableName . $this->getQuoteSymbol() . " WHERE Key_name != 'PRIMARY'");
         $map = array();
         foreach ($rows as $row) {
             $map[$row['Key_name']] = true;

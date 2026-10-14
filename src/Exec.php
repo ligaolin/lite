@@ -13,6 +13,14 @@ trait Exec
     protected $start = 0;
     protected $debugLevel = 2;
 
+    function getQuoteSymbol()
+    {
+        if ($this->instanceConn) {
+            return $this->instanceConn->getSymbol();
+        }
+        return self::$symbol;
+    }
+
     function debug()
     {
         $this->debug = true;

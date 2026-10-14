@@ -19,7 +19,7 @@ trait Delete
             $this->model->beforeDelete();
         }
         $arr = array('DELETE FROM');
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
