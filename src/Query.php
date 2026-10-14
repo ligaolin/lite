@@ -259,7 +259,7 @@ trait Query
         $arr = array('SELECT');
         if ($this->distinct) $arr[] = 'DISTINCT';
         if (!count($this->field)) $this->field = array('*');
-        $arr = array_merge($arr, $this->field);
+        $arr[] = join(', ', $this->field);
         $arr[] = 'FROM';
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
         $arr = array_merge($arr, $this->join);
@@ -304,7 +304,7 @@ trait Query
         $arr = array('SELECT');
         if ($this->distinct) $arr[] = 'DISTINCT';
         if (!count($this->field)) $this->field = array('*');
-        $arr = array_merge($arr, $this->field);
+        $arr[] = join(', ', $this->field);
         $arr[] = 'FROM';
         $arr[] = self::$symbol . $this->getTable() . self::$symbol;
         $arr = array_merge($arr, $this->join);
