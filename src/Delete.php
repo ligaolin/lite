@@ -8,6 +8,11 @@ trait Delete
     // getTable()/runExec()/toArgs()/$symbol 等成员。
     // 切勿在此 use Table/Query/Exec：PHP 5.4 会把“同一 trait 经多条路径引入”
     // 判定为方法冲突（如 getTable），导致 Fatal error。
+    function delete()
+    {
+        return $this->Delete();
+    }
+
     function Delete()
     {
         if ($this->model && method_exists($this->model, 'beforeDelete')) {
