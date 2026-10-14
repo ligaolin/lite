@@ -10,11 +10,6 @@ trait Delete
     // 判定为方法冲突（如 getTable），导致 Fatal error。
     function delete()
     {
-        return $this->Delete();
-    }
-
-    function Delete()
-    {
         if ($this->model && method_exists($this->model, 'beforeDelete')) {
             $this->model->beforeDelete();
         }
