@@ -33,7 +33,7 @@ trait Save
                 if ((is_array($model) && (!isset($model[$val]) || $model[$val] === null || $model[$val] === '')) || (is_object($model) && (!isset($model->$val) || $model->$val === null || $model->$val === ''))) {
                     $update = false;
                 } else {
-                    $where[] = self::$symbol . $val . self::$symbol . ' = ?';
+                    $where[] = $this->getQuoteSymbol() . $val . $this->getQuoteSymbol() . ' = ?';
                     $whereArgs[] = is_array($model) ? $model[$val] : $model->$val;
                 }
             }
@@ -63,7 +63,7 @@ trait Save
         if ($this->model && method_exists($this->model, 'beforeCreate')) {
             $this->model->beforeCreate();
         }
-        $arr = ['INSERT INTO ' . self::$symbol . $this->getTable() . self::$symbol];
+        $arr = ['INSERT INTO ' . $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol()];
         [$fields, $args] = $this->saveVal($model, true);
         if (count($fields)) {
             $arr[] = '(' . join(',', $fields) . ')';
@@ -95,7 +95,7 @@ trait Save
         if ($this->model && method_exists($this->model, 'beforeUpdate')) {
             $this->model->beforeUpdate();
         }
-        $arr = ['UPDATE ' . self::$symbol . $this->getTable() . self::$symbol . ' SET'];
+        $arr = ['UPDATE ' . $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol() . ' SET'];
 
         [$fields, $args] = $this->saveVal($model, false);
         if (count($fields)) {
@@ -149,8 +149,8 @@ trait Save
                 $type = Type::get($ref, $key);
             }
             if (in_array($key, $pkName) && !$val) continue;
-            if ($isInsert) $sqlFields[] = self::$symbol . $key . self::$symbol;
-            else $sqlFields[] = self::$symbol . $key . self::$symbol . ' = ?';
+            if ($isInsert) $sqlFields[] = $this->getQuoteSymbol() . $key . $this->getQuoteSymbol();
+            else $sqlFields[] = $this->getQuoteSymbol() . $key . $this->getQuoteSymbol() . ' = ?';
             $args[] = $this->castValue($val, $type);
         }
         return [$sqlFields, $args];
@@ -185,12 +185,12 @@ trait Save
             if ($pkName = $this->getPkName()) {
                 foreach ($pkName as $val) {
                     if ((is_array($this->model) && isset($this->model[$val]) && $this->model[$val] !== null && $this->model[$val] !== '') || (is_object($this->model) && isset($this->model->$val) && $this->model->$val !== null && $this->model->$val !== '')) {
-                        $where .= " AND " . self::$symbol . $val . self::$symbol . ' != ?';
+                        $where .= " AND " . $this->getQuoteSymbol() . $val . $this->getQuoteSymbol() . ' != ?';
                         $whereArgs[] = is_array($this->model) ? $this->model[$val] : $this->model->$val;
                     }
                 }
             }
-            $sql = "SELECT EXISTS (SELECT 1 FROM " . self::$symbol . $this->getTable() . self::$symbol . " WHERE {$where}) as count";
+            $sql = "SELECT EXISTS (SELECT 1 FROM " . $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol() . " WHERE {$where}) as count";
             $result = self::runQuery($sql, $whereArgs);
             if (!isset($result[0]['count']) || $result[0]['count']) {
                 throw new \Exception($msg);

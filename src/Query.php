@@ -151,7 +151,7 @@ trait Query
         $arr = ['SELECT'];
         $arr[] = $field;
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -182,7 +182,7 @@ trait Query
         $arr = ['SELECT'];
         $arr[] = join(',', $fields);
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -219,7 +219,7 @@ trait Query
         if ($this->distinct) $arr[] = 'DISTINCT';
         $arr[] = 'COUNT(*)';
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -251,7 +251,7 @@ trait Query
         if (!count($this->field)) $this->field = ['*'];
         $arr[] = join(', ', $this->field);
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -297,7 +297,7 @@ trait Query
         if (!count($this->field)) $this->field = ['*'];
         $arr[] = join(', ', $this->field);
         $arr[] = 'FROM';
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);
@@ -352,7 +352,7 @@ trait Query
     function exists(&$exist)
     {
         $arr = ['SELECT 1 FROM'];
-        $arr[] = self::$symbol . $this->getTable() . self::$symbol;
+        $arr[] = $this->getQuoteSymbol() . $this->getTable() . $this->getQuoteSymbol();
         $arr = array_merge($arr, $this->join);
 
         $where = join(' AND ', $this->where);

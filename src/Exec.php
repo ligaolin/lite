@@ -12,6 +12,15 @@ trait Exec
     static protected string $symbol = '`';
     protected float $start = 0;
     protected $debugLevel = 2; // 1: 打印sql语句+参数，2: 1+耗时+返回行数，3: 2+对象执行时间
+
+    function getQuoteSymbol(): string
+    {
+        if ($this->instanceConn) {
+            return $this->instanceConn->getSymbol();
+        }
+        return self::$symbol;
+    }
+
     function debug()
     {
         $this->debug = true;
