@@ -376,6 +376,7 @@ trait Query
 
     function preload(object $model, $fun = null)
     {
+        if (!$this->model) return $this;
         $ref = new \ReflectionClass($this->model);
         $relatedClass = $model::class;
         $pk = $this->getPkName();

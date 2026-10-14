@@ -9,7 +9,7 @@ trait Delete
     // 删除数据
     function Delete()
     {
-        if (method_exists($this->model, 'beforeDelete')) {
+        if ($this->model && method_exists($this->model, 'beforeDelete')) {
             $this->model->beforeDelete();
         }
         $arr = ['DELETE FROM'];
@@ -24,7 +24,7 @@ trait Delete
         $args = $this->toArgs();
         self::runExec($sql, $args);
 
-        if (method_exists($this->model, 'afterDelete')) {
+        if ($this->model && method_exists($this->model, 'afterDelete')) {
             $this->model->afterDelete();
         }
         return $this;
