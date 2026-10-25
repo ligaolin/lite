@@ -30,7 +30,7 @@ trait Save
         $whereArgs = [];
         if (count($pkName)) {
             foreach ($pkName as $val) {
-                if ((is_array($model) && (!isset($model[$val]) || $model[$val] === null || $model[$val] === '')) || (is_object($model) && (!isset($model->$val) || $model->$val === null || $model->$val === ''))) {
+                if ((is_array($model) && (!isset($model[$val]) || !$model[$val])) || (is_object($model) && (!isset($model->$val) || !$model->$val))) {
                     $update = false;
                 } else {
                     $where[] = $this->getQuoteSymbol() . $val . $this->getQuoteSymbol() . ' = ?';
@@ -184,7 +184,7 @@ trait Save
         if ($where) {
             if ($pkName = $this->getPkName()) {
                 foreach ($pkName as $val) {
-                    if ((is_array($this->model) && isset($this->model[$val]) && $this->model[$val] !== null && $this->model[$val] !== '') || (is_object($this->model) && isset($this->model->$val) && $this->model->$val !== null && $this->model->$val !== '')) {
+                    if ((is_array($this->model) && isset($this->model[$val]) && $this->model[$val]) || (is_object($this->model) && isset($this->model->$val) && $this->model->$val)) {
                         $where .= " AND " . $this->getQuoteSymbol() . $val . $this->getQuoteSymbol() . ' != ?';
                         $whereArgs[] = is_array($this->model) ? $this->model[$val] : $this->model->$val;
                     }
