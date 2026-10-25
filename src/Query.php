@@ -194,12 +194,14 @@ trait Query
         return $this;
     }
 
-    // 查询多个字段值，返回以字段名为key、值为数组的关联数组
-    // 可传字符串字段名（自动转为单元素数组）或字段名数组
+    // 查询多个字段值
+    // 传字符串字段名：返回该字段所有值组成的一维数组
+    // 传字段名数组：返回以字段名为key、值为数组的关联数组
     function values($fields, &$data)
     {
-        if (is_string($fields)) $fields = array($fields);
-        $data = array_fill_keys($fields, array());
+        $single = is_string($fields);
+        if ($single) $fields = array($fields);
+        $data = $single ? array() : array_fill_keys($fields, array());
 
         $arr = array('SELECT');
         $arr[] = join(',', $fields);
@@ -225,7 +227,11 @@ trait Query
         $result = self::runQuery($sql, $args);
         foreach ($result as $row) {
             foreach ($fields as $f) {
-                $data[$f][] = isset($row[$f]) ? $row[$f] : null;
+                if ($single) {
+                    $data[] = isset($row[$f]) ? $row[$f] : null;
+                } else {
+                    $data[$f][] = isset($row[$f]) ? $row[$f] : null;
+                }
             }
         }
         return $this;
