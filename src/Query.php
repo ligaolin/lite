@@ -176,9 +176,13 @@ trait Query
         return $this;
     }
 
-    // 查询多个字段值，返回二维数组
-    function values(array $fields, array &$data)
+    // 查询多个字段值，返回以字段名为key、值为数组的关联数组
+    // 可传字符串字段名（自动转为单元素数组）或字段名数组
+    function values(array|string $fields, array &$data)
     {
+        if (is_string($fields)) $fields = [$fields];
+        $data = array_fill_keys($fields, []);
+
         $arr = ['SELECT'];
         $arr[] = join(',', $fields);
         $arr[] = 'FROM';
@@ -201,13 +205,10 @@ trait Query
         $sql = join(' ', $arr);
         $args = $this->toArgs();
         $result = self::runQuery($sql, $args);
-        $data = [];
         foreach ($result as $row) {
-            $item = [];
             foreach ($fields as $f) {
-                $item[$f] = $row[$f] ?? null;
+                $data[$f][] = $row[$f] ?? null;
             }
-            $data[] = $item;
         }
         return $this;
     }
