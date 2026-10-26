@@ -597,13 +597,6 @@ DB::table('orders', 'db2')->where('status = ?', 'paid')->limit(10)->values(['id'
 DB::table('logs', 'db1')->create(['msg' => 'back to db1']);
 ```
 
-也可以使用 `DB::setConn()` 全局切换当前连接：
-
-```php
-DB::setConn(Conn::getInstance('db2'));
-DB::table('users')->where('id = ?', 1)->value('name', $name);
-```
-
 #### 自定义连接实现
 
 `ConnInterface` 定义了连接需要实现的接口：
