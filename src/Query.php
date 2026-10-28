@@ -35,15 +35,21 @@ trait Query
 
     function where(string $sql, ...$val)
     {
+        $offset = 0;
         foreach ($val as &$v) {
             if (is_array($v)) {
-                $pos = strpos($sql, '?');
+                $pos = strpos($sql, '?', $offset);
                 if ($pos !== false) {
                     $placeholders = join(',', array_fill(0, count($v), '?'));
                     $sql = substr($sql, 0, $pos) . $placeholders . substr($sql, $pos + 1);
+                    $offset = $pos + strlen($placeholders);
                 }
                 $this->whereArgs = array_merge($this->whereArgs, $v);
             } else {
+                $pos = strpos($sql, '?', $offset);
+                if ($pos !== false) {
+                    $offset = $pos + 1;
+                }
                 $this->whereArgs[] = $v;
             }
         }
@@ -55,14 +61,20 @@ trait Query
     function whereNotEmpty(string $sql, $val)
     {
         if ($val) {
+            $offset = 0;
             if (is_array($val)) {
-                $pos = strpos($sql, '?');
+                $pos = strpos($sql, '?', $offset);
                 if ($pos !== false) {
                     $placeholders = join(',', array_fill(0, count($val), '?'));
                     $sql = substr($sql, 0, $pos) . $placeholders . substr($sql, $pos + 1);
+                    $offset = $pos + strlen($placeholders);
                 }
                 $this->whereArgs = array_merge($this->whereArgs, $val);
             } else {
+                $pos = strpos($sql, '?', $offset);
+                if ($pos !== false) {
+                    $offset = $pos + 1;
+                }
                 $this->whereArgs[] = $val;
             }
             $this->where[] = $sql;
